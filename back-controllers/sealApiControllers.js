@@ -2,6 +2,8 @@ import axios from "axios";
 const { Credentials } = require("uport-credentials");
 const pushTransport = require("uport-transports").transport.push;
 const crypto = require("crypto");
+import { Resolver } from 'did-resolver'
+import { getResolver } from 'ethr-did-resolver'
 
 import {
   updateSessionData,
@@ -13,10 +15,15 @@ import { publish } from "../back-services/server-sent-events";
 import { generateCredentialModel } from "../model/credentialModel";
 import { mySigner } from "../back-services/hsmSigner";
 
+
+const providerConfig = { rpcUrl: 'https://mainnet.infura.io/v3/051806cbbf204a4886f2ab400c2c20f9' }
+const resolver = new Resolver(getResolver(providerConfig))
+
 const credentials = new Credentials({
   appName: "MyIssuer",
   did: "did:ethr:0xd502a2c71e8c90e82500a70683f75de38d57dd9f",
   signer: mySigner,
+  resolver
 });
 
 function validate(req, res) {
