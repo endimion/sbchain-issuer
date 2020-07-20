@@ -1,37 +1,30 @@
 const express = require("express");
 const next = require("next");
 const ngrok = require("ngrok");
-
+const https = require("https");
+const http = require("http");
 const port = parseInt(process.env.PORT, 10) || 5000;
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
 const handle = app.getRequestHandler();
-
 const bodyParser = require("body-parser");
 const session = require("express-session");
-const MemcachedStore = require("connect-memcached")(session);
-
-const axios = require("axios");
-
+import { getSessionCache } from "./helpers/CacheHelper";
 import { subscribe } from "./back-services/server-sent-events";
-const makeConnectionRequest = require("./back-controllers/controllers")
-  .makeConnectionRequest;
-const cacheUserConnectionRequest = require("./back-controllers/controllers")
-  .cacheUserConnectionRequest;
-const credentialsIssuanceConnectionResponse = require("./back-controllers/controllers")
-  .credentialsIssuanceConnectionResponse;
-const issueVc = require("./back-controllers/controllers").issueVC;
 
-// const proxy = require("http-proxy-middleware");
-// const proxyOptions = {
-//   target: `http://localhost:${port}/`,
-//   // target:`http://localhost/issuer/`,
-//   // changeOrigin: true,
-//   pathRewrite: {
-//     "^/issuer": ""
-//   }
-// };
-// const exampleProxy = proxy(proxyOptions);
+const onlyConnectionRequest = require("./back-controllers/controllers")
+  .onlyConnectionRequest;
+const onlyConnectionResponse = require("./back-controllers/controllers")
+  .onlyConnectionResponse;
+const onlyIssueVC = require("./back-controllers/controllers").onlyIssueVC;
+
+import { sealIssueVC, issueBenefitVC } from "./back-controllers/sealApiControllers";
+import {
+  updateSessionData,
+  getSessionData,
+  startSession,
+} from "./back-services/sessionServices";
+// import { startSession } from "./back-services/sealServices";
 
 let endpoint = "";
 
@@ -44,55 +37,75 @@ const SESSION_CONF = {
   saveUninitialized: true,
   cookie: { secure: false },
   store: memoryStore,
-  maxExpiration: 90000
+  // maxExpiration: 90000,
 };
 
 if (isProduction) {
-  console.log(`will set sessionstore to memcache ${process.env.MEMCACHED_URL}`);
-  SESSION_CONF.store = new MemcachedStore({
-    hosts: [process.env.MEMCACHED_URL],
-    secret: "123, easy as ABC. ABC, easy as 123" // Optionally use transparent encryption for memcache session data
-  });
+  SESSION_CONF.store = getSessionCache(session);
 }
 
 // keycloack confniguration
 
 const KeycloakMultiRealm = require("./back-services/KeycloakMultiRealm");
-
-const esmoRealmConfig = {
-  realm: "esmo",
-  "auth-server-url": "https://esmo-gateway.eu/auth",
-  "ssl-required": "none",
-  resource: "test-esmo-ssi",
-  credentials: {
-    secret: "84528348-48d5-4fb0-a230-bb2aff6c45d4"
-  },
-  "confidential-port": 0
-};
+// const SEAL_EIDAS_URI=process.env.SEAL_EIDAS_URI?process.env.SEAL_EIDAS_URI:'vm.project-seal.eu'
+// const SEAL_EIDAS_PORT=process.env.SEAL_EIDAS_PORT?process.env.SEAL_EIDAS_PORT:'8091'
+// const SEAL_EDUGAIN_URI= process.env.SEAL_EDUGAIN_URI?process.env.SEAL_EDUGAIN_URI:'vm.project-seal.eu'
+// const SEAL_EDUGAIN_PORT=process.env.SEAL_EDUGAIN_PORT?process.env.SEAL_EDUGAIN_PORT:''
 
 const eidasRealmConfig = {
-  realm: "test",
-  "auth-server-url": "https://dss1.aegean.gr/auth",
+  realm: "eidas",
+  "auth-server-url": "https://esmo-gateway.eu/auth",
   "ssl-required": "none",
-  resource: "testClient2",
+  resource: "testClient",
   credentials: {
-    secret: "fff6237e-5bf1-4713-8926-023180eeb0f0"
+    secret: "317f5c96-dbf9-45f0-9c46-f8d7e7934b8c",
   },
   "confidential-port": 0,
-  "redirect-rewrite-rules": {
-    "^http://uportissuer:3000/(.*)$": "http://localhost/issuer/$1"
-  }
 };
 
-const keycloak = new KeycloakMultiRealm({ store: memoryStore }, [
-  esmoRealmConfig,
-  eidasRealmConfig
-]);
+const amkaRealm = {
+  realm: "amka",
+  "auth-server-url": "https://dss1.aegean.gr/auth",
+  "ssl-required": "external",
+  resource: "testClient",
+  credentials: {
+    secret: "13f54571-b5cb-40a1-a0c6-862c84b5ee94",
+  },
+  "confidential-port": 0,
+};
 
-// var Keycloak = require("keycloak-connect");
-// var keycloak = new Keycloak({
-//   store: memoryStore
-// });
+const mitroRealm = {
+  "realm": "mitroPoliton",
+  "auth-server-url": "https://dss1.aegean.gr/auth",
+  "ssl-required": "external",
+  "resource": "mitroTest",
+  "credentials": {
+    "secret": "57e8d0b8-e0a2-48a9-81d9-38be4735773a"
+  },
+  "confidential-port": 0
+}
+
+
+const SSI = {
+  "realm": "SSI",
+  "auth-server-url": "https://dss1.aegean.gr/auth",
+  "ssl-required": "external",
+  "resource": "testssi",
+  "credentials": {
+    "secret": "8c288fd3-14f9-4f1c-9e03-8ca8b3a3ec67"
+  },
+  "confidential-port": 0
+}
+
+
+
+
+const keycloak = new KeycloakMultiRealm({ store: memoryStore }, [
+  amkaRealm,
+  eidasRealmConfig,
+  mitroRealm,
+  SSI
+]);
 
 //end of keycloak config
 
@@ -101,8 +114,6 @@ app.prepare().then(() => {
   server.set("trust proxy", 1); // trust first proxy
   server.use(bodyParser.urlencoded({ extended: true }));
   server.use(bodyParser.json({ type: "*/*" }));
-  // server.use(multer()); // for parsing multipart/form-data
-  // //urlencoded
 
   // set session managment
   if (process.env.HTTPS_COOKIES === true) {
@@ -111,114 +122,106 @@ app.prepare().then(() => {
   server.use(session(SESSION_CONF));
   server.use(keycloak.middleware());
 
-  // if(!dev){
-  //   // server.use(['/issuer', '/_next', '/static'], exampleProxy)
-  //   server.use(['/issuer?', ], exampleProxy)
-  // }
-
   //start server sent events for the server
   server.get("/events", subscribe);
 
-  server.post("/makeConnectionRequest", (req, res) => {
-    req.endpoint = endpoint;
-    return makeConnectionRequest(req, res);
-  });
-
-  // accepts a connection request response
-  server.post("/cacheUserConnectionRequest", (req, res) => {
-    return cacheUserConnectionRequest(req, res);
-  });
-
-  server.post("/issueVCReq", (req, res) => {
-    // console.log("server.js issueVCReq");
-    // console.log(`server.js-issueVCReq::found existing session ${req.session.id}`);
-    req.endpoint = endpoint;
-    req.baseUrl = process.env.BASE_PATH;
-    if (req.session.id) {
-      // console.log(`requested new VC issuance  on session ${req.session.id}`);
-      // console.log(`with data`);
-      // console.log(req.body.data);
-      return issueVc(req, res);
-    }
-  });
-
-  // credentials-issuance-connectionResponse
-  server.post("/requestIssueResponse", (req, res) => {
-    console.log(`server.hs requestIssueResponse called!!`);
-    req.session.baseUrl = process.env.BASE_PATH;
-    return credentialsIssuanceConnectionResponse(req, res);
-  });
-
   server.get(["/home", "/"], (req, res) => {
-    console.log(`server.js-home::found existing session ${req.session.id}`);
-    //TODO make an API call here usinsg a redirection parameter to get the
-    // user attributes from the backend
-    //TODO format of these data
-    const mockData = {
-      eduGAIN: {
-        isStudent: "true",
-        source: "eduGAIN",
-        loa: "low"
-      },
-      TAXISnet: {
-        name: "Nikos",
-        surname: "Triantafyllou",
-        loa: "low",
-        source: "TAXISnet"
-      }
-    };
-    if (!req.session.userData) req.session.userData = mockData;
+    // console.log(`server.js-home::found existing session ${req.session.id}`);
+    const mockData = {};
+    if (!req.session.e1DetailsData) req.session.e1DetailsData = mockData;
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
-
     return app.render(req, res, "/", req.query);
   });
 
-  server.get(["/attribute-selector"], (req, res) => {
-    // console.log(req.session.userData);
-    console.log(
-      `server.js-attribute-selector::found existing session ${req.session.id}`
-    );
-    req.session.baseUrl = process.env.BASE_PATH;
-    return app.render(req, res, "/attribute-selector", req.query);
+  /*
+    ######################################
+    #### SECURE CONTROLLERS ############//
+  */
+
+  server.post("/issueVCSecure", (req, res) => {
+    req.endpoint = endpoint;
+    console.log("server.js -- issueVCSecure::  issueVCSecure");
+    return onlyIssueVC(req, res);
   });
 
-  // Protected by Keycloak Routes
-  // server.get(["/test/eidas-authenticate","/issuer/test/eidas-authenticate"], keycloak.protect(), (req, res) => {
+  // ###############################################
+  server.post(
+    [
+      "/onlyConnectionRequest",
+      "/vc/issue/onlyConnectionRequest",
+      "/vc/onlyConnectionRequest",
+    ],
+    (req, res) => {
+      req.endpoint = endpoint;
+      req.baseUrl = process.env.BASE_PATH;
+      console.log(
+        "server.js -- onlyConnectionRequest::  onlyConnectionRequest"
+      );
+      return onlyConnectionRequest(req, res);
+    }
+  );
+
+  server.post(
+    [
+      "/onlyConnectionResponse",
+      "/vc/issue/onlyConnectionResponse",
+      "/vc/onlyConnectionResponse",
+    ],
+    (req, res) => {
+      req.endpoint = endpoint;
+      console.log(
+        "server.js -- onlyConnectionResponse::  onlyConnectionResponse"
+      );
+      return onlyConnectionResponse(req, res);
+    }
+  );
+
+  // ############################################### //#endregion
+
+  /*
+    ######################################
+    #### SEAL Specific Controllers ############
+    ########################################
+  */
+  server.post("/seal/issueVC", (req, res) => {
+    req.endpoint = endpoint;
+    console.log("server.js -- /seal/issueVC::  /seal/issueVC");
+    return sealIssueVC(req, res);
+  });
+
+  server.post("/benefit/issue", (req, res) => {
+    req.endpoint = endpoint;
+    console.log("server.js -- benefit/issue::  benefit/issue");
+    return issueBenefitVC(req, res);
+  });
+
+
+  server.post(["/vc/start-session"], async (req, res) => {
+    let sessionId = await startSession();
+    console.log(`server.js -- /vc/start-session:: just created ${sessionId}`);
+    res.send({ sId: sessionId, code: "OK" });
+  });
+
+  // ################################################################33
+
+  // ############ Protected by Keycloak Routes ####################
   server.get(
-    ["/test/eidas-authenticate", "/issuer/test/eidas-authenticate"],
+    ["/eidas/eidas-authenticate", "/issuer/eidas/eidas-authenticate"],
     keycloak.protect(),
     (req, res) => {
       console.log("we accessed a protected root!");
       // see mockJwt.json for example response
       const idToken = req.kauth.grant.access_token.content;
-      // console.log(req.kauth.grant);
-      // console.log(idToken)
-      const userDetails = {
-        // email: idToken.email,
+      const e1DetailsDetails = {
         given_name: idToken.given_name,
-        family_name: idToken.family_name,
-        // sending_institution_page: idToken.sending_institution_page,
-        // gender: idToken.gender,
-        // institutional_email: idToken.institutional_email,
-        person_identifier: idToken.person_identifier,
-        // mobile_phone: idToken.mobile_phone,
-        // sending_institution_name: idToken.sending_institution_name,
-        // sending_institution_address: idToken.sending_institution_address,
-        // place_of_birth: idToken.place_of_birth,
-        date_of_birth: idToken.date_of_birth,
-        source: "eidas",
-        loa: idToken.loa
-        // sending_institution_name_2: idToken.sending_institution_name_2
       };
-
-      console.log(`server.js:: user-details`);
-      if (req.session.userData) {
-        console.log(`${req.session.userData}`);
-        req.session.userData.eidas = userDetails;
+      console.log(`server.js:: e1Details-details`);
+      if (req.session.e1DetailsData) {
+        req.session.e1DetailsData.eidas = e1DetailsDetails;
       } else {
-        req.session.userData = {};
-        req.session.userData.eidas = userDetails;
+        req.session.e1DetailsData = {};
+        req.session.e1DetailsData.eidas = e1DetailsDetails;
       }
       req.endpoint = process.env.ENDPOINT; // this gets lost otherwise, on the server redirection
       req.session.baseUrl = process.env.BASE_PATH;
@@ -226,104 +229,425 @@ app.prepare().then(() => {
     }
   );
 
+ 
   server.get(
-    "/test/is-student-eidas-authenticate",
+    ["/SSI/benefit-authenticate", "/sbchain/SSI/benefit-authenticate"],
     keycloak.protect(),
-    (req, res) => {
+    async (req, res) => {
+      console.log(`reached SSI/benefit-authenticate`)
+      const sessionId = req.query.session;
       const idToken = req.kauth.grant.access_token.content;
-      const userDetails = {
-        given_name: idToken.given_name,
-        family_name: idToken.family_name,
-        person_identifier: idToken.person_identifier,
-        date_of_birth: idToken.date_of_birth,
-        source: "eidas",
-        loa: idToken.loa
+      const taxisDetails = {
+        afm: idToken.afm,
+        loa: "low",
+        source: "TAXIS",
       };
-      if (req.session.userData) {
-        console.log(`${req.session.userData}`);
-        req.session.userData.eidas = userDetails;
-      } else {
-        req.session.userData = {};
-        req.session.userData.eidas = userDetails;
+      //store response in cache
+      console.log(`server.js SSI/benefit-authenticate , checking dataStore`)
+
+      let dataStore = await getSessionData(sessionId, "dataStore");
+      if (!dataStore) {
+        dataStore = {};
       }
-      req.endpoint = endpoint; // this gets lost otherwise, on the server redirection
+
+      console.log(`server.js SSI/benefit-authenticate , datastore ok`)
+      dataStore["TAXIS"] = taxisDetails;
+      await updateSessionData(sessionId, "dataStore", dataStore);
+      console.log(`server.js SSI/benefit-authenticate , sessionData updated`)
+
+      req.session.userData = {"taxis": taxisDetails};
+      req.session.sealSession = sessionId;
+      req.session.DID = true;
+      req.session.endpoint = endpoint;
       req.session.baseUrl = process.env.BASE_PATH;
-      return app.render(req, res, "/issue-is-student", req.query);
+      console.log(`server.js will render /vc/issue/benefit`)
+      return app.render(req, res, "/vc/issue/benefit", req.query);
     }
   );
 
+
+
   server.get(
-    "/esmo/is-student-esmo-authenticate",
+    [
+      "/mitroPoliton/mitro-authenticate",
+      "/issuer/mitroPoliton/mitro-authenticate",
+    ],
     keycloak.protect(),
-    (req, res) => {
+    async (req, res) => {
+      const sessionId = req.query.session;
       const idToken = req.kauth.grant.access_token.content;
-      const userDetails = {
-        eduPersonAffiliation: idToken.eduPersonAffiliation,
-        source: "edugain",
-        loa: idToken.loa ? idToken.loa : "low"
+      const taxisDetails = {
+        // birthcountry: idToken.birthcountry,
+        // birthdate: idToken.birthdate,
+        // birthmuniccomm: idToken.birthmuniccomm,
+        // birthmunicipal: idToken.birthmunicipal,
+        // birthmunicipalunit: idToken.birthmunicipalunit,
+        // birthprefecture: idToken.birthprefecture,
+        // eklspecialno: idToken.eklspecialno,
+        // familyShare: idToken.familyShare,
+        // fatherfirstname: idToken.fatherfirstname,
+        // fathersurname: idToken.fathersurname,
+        // firstname: idToken.firstname,
+        // gainmunrecdate: idToken.gainmunrecdate,
+        // gender: idToken.gender,
+        // grnatgaindate: idToken.grnatgaindate,
+        // mainnationality: idToken.mainnationality,
+        // mansdecentraladmin: idToken.mansdecentraladmin,
+        // mansmunicipalityname: idToken.mansmunicipalityname,
+        // mansreckind: idToken.mansreckind,
+        // mansrecordaa: idToken.mansrecordaa,
+        // mansrecordyear: idToken.mansrecordyear,
+        // maracountry: idToken.maracountry,
+        // maramuniccomm: idToken.maramuniccomm,
+        // maramunicipality: idToken.maramunicipality,
+        // maraprefecture: idToken.maraprefecture,
+        // marriageactdate: idToken.marriageactdate,
+        // marriageactno: idToken.marriageactno,
+        // marriageactro: idToken.marriageactro,
+        // marriageacttomos: idToken.marriageacttomos,
+        // marriageactyear: idToken.marriageactyear,
+        // marriagerank: idToken.marriagerank,
+        // member: idToken.member,
+        // membertype: idToken.membertype,
+        // merida: idToken.merida,
+        // motherfirstname: idToken.motherfirstname,
+        // mothergenos: idToken.mothergenos,
+        // mothersurname: idToken.mothersurname,
+        // municipalityname: idToken.municipalityname,
+        // reckind: idToken.reckind,
+        // secondname: idToken.secondname,
+        // spouseagreementrank: idToken.spouseagreementrank,
+        // spousemarriagerank: idToken.spousemarriagerank,
+        // surname: idToken.surname,
+        gender: idToken.gender,
+        nationality: idToken.mainnationality,
+        singleParent: idToken.spousemarriagerank ? false : true,
+        maritalStatus: idToken.marriagerank ? "married" : "divorced",
+        loa: "low",
+        source: "MITRO",
       };
-      if (req.session.userData) {
-        console.log(`${req.session.userData}`);
-        req.session.userData.edugain = userDetails;
-      } else {
-        req.session.userData = {};
-        req.session.userData.edugain = userDetails;
+
+      //store response in cache
+      let dataStore = await getSessionData(sessionId, "dataStore");
+      if (!dataStore) {
+        dataStore = {};
       }
-      req.endpoint = endpoint; // this gets lost otherwise, on the server redirection
+      dataStore["MITRO"] = taxisDetails;
+      await updateSessionData(sessionId, "dataStore", dataStore);
+      dataStore = await getSessionData(sessionId, "dataStore");
+      // make response available in front end
+      if (req.session.e1DetailsData) {
+        req.session.e1DetailsData.mitro = taxisDetails;
+      } else {
+        req.session.e1DetailsData = {};
+        req.session.e1DetailsData.mitro = taxisDetails;
+      }
       req.session.baseUrl = process.env.BASE_PATH;
-      console.log(`user details is-student-esmo-authenticate::`);
-      console.log(userDetails);
-      return app.render(req, res, "/issue-is-student", req.query);
+
+      req.session.DID = true;
+      req.session.sealSession = sessionId;
+
+      return app.render(req, res, "/vc/issue/mitro", req.query);
     }
   );
 
-  // Protected by the second Keycloak realm
   server.get(
-    ["/academicId/academicId-authenticate"],
+    ["/amka/amka-authenticate", "/issuer/amka/amka-authenticate"],
     keycloak.protect(),
-    (req, res) => {
-      console.log("this is a test");
+    async (req, res) => {
+      console.log("amka Protected Roort");
+      console.log(
+        `/amka/amka-authenticate cache sessionId number:: ${req.query.session}`
+      );
+      const sessionId = req.query.session;
+      const idToken = req.kauth.grant.access_token.content;
+      // console.log(idToken)
+      const amkaDetails = {
+        latinLastName: idToken.latinLastName,
+        birthDate: idToken.birthDate,
+        latinFirstName: idToken.latinFirstName,
+        father: idToken.fatherEN,
+        mother: idToken.motherEn,
+        loa: "low",
+        source: "AMKA",
+      };
+      //store response in cache
+      let dataStore = await getSessionData(sessionId, "dataStore");
+      if (!dataStore) {
+        dataStore = {};
+      }
+      dataStore["AMKA"] = amkaDetails;
+      await updateSessionData(sessionId, "dataStore", dataStore);
+      dataStore = await getSessionData(sessionId, "dataStore");
+      // console.log(dataStore);
+      // make response available in front end
+      if (req.session.e1DetailsData) {
+        req.session.e1DetailsData.amka = amkaDetails;
+      } else {
+        req.session.e1DetailsData = {};
+        req.session.e1DetailsData.amka = amkaDetails;
+      }
+      req.session.baseUrl = process.env.BASE_PATH;
+
+      req.session.DID = true;
+      req.session.sealSession = sessionId;
+
+      return app.render(req, res, "/vc/issue/amka", req.query);
     }
   );
 
-  server.post("/academicId/check", async (req, res) => {
-    const token = req.body.token;
-    const attributeRetrievalEndpoint = process.env.ACADEMICID_TOKEN_END;
-  
-    try {
-      let response = await axios.get(`${attributeRetrievalEndpoint}?token=${token}`);
+  server.get(
+    ["/taxis/taxis-authenticate", "/sbchain/taxis/taxis-authenticate"],
+    // keycloak.protect(),
+    async (req, res) => {
+      const sessionId = req.query.session;
+      console.log(`server.js  ---> taxis/taxis-authenticate I go the sesionID`)
+      console.log(sessionId);
+      // const idToken = req.kauth.grant.access_token.content;
+      const taxisDetails = {
+        afm: "070892XX",
+        amka: "051083046XX",
+        lastName: "Τριανταφύλλου",
+        fistName: "Νικόλαος",
+        fathersName: "Αναστάσιος",
+        mothersName: "Αγγελική",
+        fathersNameLatin: "Anastasios",
+        mothersNameLatin: "Aggeliki",
+        firstNameLatin: "Nikolaos",
+        lastNameLatin: "Triantafyllou",
+        gender: "male",
+        nationality: "Greek",
+        loa: "low",
+        source: "TAXIS",
+        dateOfBirth:"05/10/1983",
+        householdComposition: [{name:"Katerina",relation:"wife"},{name:"xx",relation:"daughter"}],
+        address: {
+          street: "Καλλ***",
+          streetNumber: "**",
+          PO: "15***",
+          municipality: "Ζ**",
+          prefecture: "Αττικής"
 
-      // .then(response => {
-      let result = response.data.result;
-      let inspectionResult = result.inspectionResult;
-      // console.log(inspectionResult)
-      const userDetails = {
-        eduPersonAffiliation: inspectionResult.studentshipType,
-        source: "academicId",
-        loa: inspectionResult.loa ? inspectionResult.loa : "low"
+        }
       };
+
+      //store response in cache
+      let dataStore = await getSessionData(sessionId, "dataStore");
+      if (!dataStore) {
+        dataStore = {};
+      }
+      dataStore["TAXIS"] = taxisDetails;
+      await updateSessionData(sessionId, "dataStore", dataStore);
+      dataStore = await getSessionData(sessionId, "dataStore");
       if (req.session.userData) {
-        console.log(`${req.session.userData}`);
-        req.session.userData.academicId = userDetails;
+        req.session.userData.taxis = taxisDetails;
       } else {
         req.session.userData = {};
-        req.session.userData.academicId = userDetails;
+        req.session.userData.taxis = taxisDetails;
       }
-      req.endpoint = endpoint; // this gets lost otherwise, on the server redirection
       req.session.baseUrl = process.env.BASE_PATH;
-      return app.render(req, res, "/issue-is-student", req.query);
-    } catch (error) {
-      console.log(error);
-      return app.render(req, res, "/error", req.query);
+
+      req.session.DID = true;
+      req.session.sealSession = sessionId;
+
+      return app.render(req, res, "/vc/issue/taxis", req.query);
     }
-    
+  );
+
+  server.get(["/e1/getData", "/issuer/e1/getData"], async (req, res) => {
+    const sessionId = req.query.session;
+    const e1MockUrl = process.env.E1MOCK || "http://localhost:4000";
+    const name = req.query.name;
+    const surname = req.query.surname;
+    const dateOfBirth = req.query.dateOfBirth;
+
+    let httpClient = process.env.E1MOCK ? https : http;
+
+    httpClient
+      .get(
+        `${e1MockUrl}/getUser?name=${name}&surname=${surname}&dateOfBirth=${dateOfBirth}`,
+        async (resp) => {
+          let data = "";
+          // A chunk of data has been recieved.
+          resp.on("data", (chunk) => {
+            data += chunk;
+          });
+          // The whole response has been received. Print out the result.
+          resp.on("end", async () => {
+            // console.log("the data is ")
+            // console.log(data);
+            let e1Details = JSON.parse(data).users;
+            e1Details.source = "E1";
+            e1Details.loa = "low";
+            console.log("E1 DETAILS IS::")
+            console.log(e1Details);
+            let dataStore = await getSessionData(sessionId, "dataStore");
+            if (!dataStore) {
+              dataStore = {};
+            }
+            dataStore["E1"] = e1Details;
+            await updateSessionData(sessionId, "dataStore", dataStore);
+            dataStore = await getSessionData(sessionId, "dataStore");
+            if (req.session.userData) {
+              req.session.userData.e1 = e1Details;
+            } else {
+              req.session.userData = {};
+              req.session.userData.e1 = e1Details;
+            }
+            req.session.baseUrl = process.env.BASE_PATH;
+            req.session.DID = true;
+            req.session.sealSession = sessionId;
+            return app.render(req, res, "/vc/issue/e1", req.query);
+            // res.status(200).send(e1Details);
+          });
+        }
+      )
+      .on("error", (err) => {
+        console.log("Error: " + err.message);
+        res.status(500).send(err.message);
+      });
   });
+
+  server.post(["/self/store", "/issuer/self/store"], async (req, res) => {
+    console.log("server.js:: /self/store");
+
+    const sessionId = req.body.session;
+    const selfDetails = req.body.details;
+    selfDetails.loa = "low";
+    selfDetails.source = "self";
+
+    console.log(sessionId);
+    console.log(selfDetails);
+    //store response in cache
+    let dataStore = await getSessionData(sessionId, "dataStore");
+    if (!dataStore) {
+      dataStore = {};
+    }
+    dataStore["self"] = selfDetails;
+    await updateSessionData(sessionId, "dataStore", dataStore);
+    dataStore = await getSessionData(sessionId, "dataStore");
+    console.log(dataStore);
+    return res.sendStatus(200);
+  });
+
+
+  server.post(["/ebill/store", "/issuer/ebill/store"], async (req, res) => {
+    console.log("server.js:: /self/store");
+
+    const sessionId = req.body.session;
+    const eBillDetails = req.body.details;
+    eBillDetails.loa = "low";
+    eBillDetails.source = "ebill";
+    //store response in cache
+    let dataStore = await getSessionData(sessionId, "dataStore");
+    if (!dataStore) {
+      dataStore = {};
+    }
+    dataStore["ebill"] = eBillDetails;
+    await updateSessionData(sessionId, "dataStore", dataStore);
+    dataStore = await getSessionData(sessionId, "dataStore");
+    console.log(dataStore);
+    return res.sendStatus(200);
+  });
+
+  server.post(["/contact/store", "/issuer/contact/store"], async (req, res) => {
+    console.log("server.js:: /self/store");
+
+    const sessionId = req.body.session;
+    const contactDetails = req.body.details;
+    contactDetails.loa = "low";
+    contactDetails.source = "contact";
+    //store response in cache
+    let dataStore = await getSessionData(sessionId, "dataStore");
+    if (!dataStore) {
+      dataStore = {};
+    }
+    dataStore["contact"] = contactDetails;
+    await updateSessionData(sessionId, "dataStore", dataStore);
+    dataStore = await getSessionData(sessionId, "dataStore");
+    console.log(dataStore);
+    return res.sendStatus(200);
+  });
+
+  server.post(["/mitro-mock/store", "/issuer/mitro-mock/store"], async (req, res) => {
+    console.log("server.js:: /mitro-mock/store");
+    const sessionId = req.body.session;
+    const contactDetails = req.body.details;
+    contactDetails.loa = "low";
+    contactDetails.source = "mitro";
+    //store response in cache
+    let dataStore = await getSessionData(sessionId, "dataStore");
+    if (!dataStore) {
+      dataStore = {};
+    }
+    dataStore["mitro"] = contactDetails;
+    await updateSessionData(sessionId, "dataStore", dataStore);
+    dataStore = await getSessionData(sessionId, "dataStore");
+    console.log(dataStore);
+    return res.sendStatus(200);
+  });
+
+  server.get(["/vc/issue/amka"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/amka", req.query);
+  })
+  
+  server.get(["/vc/issue/contact"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/contact", req.query);
+  })
+
+  server.get(["/vc/issue/e1"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/e1", req.query);
+  })
+
+  server.get(["/vc/issue/ebill"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/ebill", req.query);
+  })
+
+  server.get(["/vc/issue/mitro"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/mitro", req.query);
+  })
+
+  server.get(["/vc/issue/mitromock"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/mitromock", req.query);
+  })
+
+  server.get(["/vc/issue/self"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/self", req.query);
+  })
+
+  server.get(["/vc/issue/taxis"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/taxis", req.query);
+  })
+
+  server.get(["/vc/issue/benefit"], async (req, res) => {
+    req.session.endpoint = endpoint;
+    req.session.baseUrl = process.env.BASE_PATH;
+    return app.render(req, res, "/vc/issue/benefit", req.query);
+  })
+
+  // #############################################################################
 
   server.all("*", (req, res) => {
     return handle(req, res);
   });
 
-  server.listen(port, err => {
+  server.listen(port, (err) => {
     if (err) throw err;
 
     if (isProduction) {
@@ -332,7 +656,7 @@ app.prepare().then(() => {
       );
       endpoint = process.env.ENDPOINT;
     } else {
-      ngrok.connect(port).then(ngrokUrl => {
+      ngrok.connect(port).then((ngrokUrl) => {
         endpoint = ngrokUrl;
         console.log(`running, open at ${endpoint}`);
       });
