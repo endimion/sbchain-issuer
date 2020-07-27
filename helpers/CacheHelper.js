@@ -37,4 +37,33 @@ function getCache() {
   return genericCache;
 }
 
-export { getSessionCache, getCache };
+
+
+function getCachePromise(key) { 
+  return new Promise( (resolve,reject) => {
+    getCache().get(key, function (err, data) {
+      if (err) {
+        console.log("NO MATCH");
+        reject(err)
+      }
+      resolve(data);
+    });
+  })
+}
+
+
+function setCachePromise(key,value, secondsToLive=1000) {
+  return new Promise( (resolve,reject) =>{
+    getCache().set(key, value, secondsToLive, function (err) {
+      if (err) {
+        reject(err)
+      }
+      resolve("OK")
+    });
+  })
+}
+
+
+
+
+export { getSessionCache, getCache, getCachePromise,setCachePromise };

@@ -202,7 +202,7 @@ function cacheUserConnectionRequest(req, res) {
         "controllers.js cacheUserConnectionRequest:: cached user did response for the current session"
       );
       let userDetails = new UserCache(uuid, null, creds);
-      claimsCache.set(uuid, userDetails, 1200000); // cached for 20 minutes
+      claimsCache.set(uuid, userDetails, 300000); // cached for 3days
       publish(JSON.stringify({ uuid: uuid, status: "connected" }));
       res.sendStatus(200);
     })

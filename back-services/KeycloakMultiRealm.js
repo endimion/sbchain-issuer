@@ -48,7 +48,8 @@ KeycloakMultiRealm.prototype.middleware = function (options) {
       realmName === "test" ||
       realmName === "mitroPoliton" ||
       realmName === "eidas" ||
-      realmName === "SSI"
+      realmName === "SSI" ||
+      realmName === "taxis"
     ) {
       // console.log(`keylcoakMultiRealm.js:: ${realmName}`);
       const keycloak = this.keycloakPerRealm[realmName];

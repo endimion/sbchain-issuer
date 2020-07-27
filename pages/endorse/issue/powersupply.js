@@ -1,6 +1,5 @@
 import React from "react";
 import axios from "axios";
-import { SubmissionError } from "redux-form";
 
 import {
   setSessionData,
@@ -9,20 +8,22 @@ import {
   setStepperSteps,
   setEndpoint,
   setBaseUrl,
-  // setServerSessionId,
   completeDIDAuth,
   makeSealSession,
   makeSessionWithDIDConnecetionRequest,
   setSealSession,
-  setRegistrationVCType,
-  setRegistrationEmail,
-  setRegistrationFinished,
-} from "../../store";
-import Layout from "../../components/Layout";
+  setUsers,
+} from "../../../store";
+import Layout from "../../../components/Layout";
 import { connect } from "react-redux";
 import { Button, Row, Col, Card, Container } from "react-bootstrap";
-import HomeButton from "../../components/HomeButton";
-import RegisterForm from "../../components/registerForm";
+import MyStepper from "../../../components/Stepper";
+import HomeButton from "../../../components/HomeButton";
+import IssueVCButton from "../../../components/IssueVCButton";
+import PairOrCard from "../../../components/PairOrCard";
+import isMobile from "../../../helpers/isMobile";
+import EndorsedSupplyForm from "../../../components/EndorsedSupplyForm";
+import ConnectMobile from "../../../components/ConnectMobile";
 
 const transport = require("uport-transports").transport;
 /*
@@ -36,7 +37,7 @@ const transport = require("uport-transports").transport;
 
 */
 
-class RegisterEndorser extends React.Component {
+class IssuePower extends React.Component {
   constructor(props) {
     super(props);
     this.dispatch = props.dispatch;
@@ -46,6 +47,8 @@ class RegisterEndorser extends React.Component {
       props.sessionData !== null &&
       props.sessionData !== undefined &&
       props.sessionData.ebill !== undefined;
+    this.handleChange = this.handleChange.bind(this);
+    this.submit = this.submit.bind(this);
   }
 
   static async getInitialProps({ reduxStore, req }) {
@@ -57,6 +60,7 @@ class RegisterEndorser extends React.Component {
       reduxStore.dispatch(setEndpoint(req.session.enpoint));
       let baseUrl = req.session.baseUrl ? `/${req.session.baseUrl}/` : "";
       reduxStore.dispatch(setBaseUrl(baseUrl));
+      reduxStore.dispatch(setUsers(req.session.users));
       // reduxStore.dispatch(setServerSessionId(req.session.sealSession));
       DIDOk = req.session.DID;
       sealSession = req.session.sealSession;
@@ -69,6 +73,7 @@ class RegisterEndorser extends React.Component {
         DIDOk = reduxStore.getState().DID;
         //if ther is sessionData then there should be a session as well
         sealSession = reduxStore.getState().sealSession;
+        // serverSessionId = reduxStore.getState().serverSessionId;
       } else {
         console.log(`no server session data found`);
       }
@@ -90,68 +95,155 @@ class RegisterEndorser extends React.Component {
       qrData: reduxStore.getState().qrData,
       vcSent: false,
       sealSession: reduxStore.getState().sealSession,
-      vcType: "",
+      endorserEmail: "",
     };
   }
 
+  componentDidMount() {
+    // if (this.props.sessionData && this.props.sessionData.ebill) {
+    //   let toSelect = [this.props.sessionData.amka];
+    //   this.props.setSefToSelection(toSelect);
+    // }
+
+    if (!this.props.DID) {
+      //if DID auth has not been completed
+      if (!this.props.sealSession) {
+        this.props.startSessionAndDidAuth(this.props.baseUrl, isMobile()); //and then makeConnectionRequest
+      } else {
+        this.props.makeConnectionRequest(
+          this.props.sealSession,
+          this.props.baseUrl,
+          isMobile()
+        );
+      }
+    }
+  }
+
   submit = (values) => {
-    console.log(values);
-    if (!values.email) {
-      throw new SubmissionError({
-        email: "email is required does not exist",
-        _error: "email is required!",
+    let email = this.state.endorserEmail;
+    axios
+      .post("/endorse/cacheRequest", {
+        endorserEmail: email,
+        credential: JSON.stringify(values),
+        sessionId: this.props.sealSession,
+      })
+      .then((data) => {
+        console.log("updated backend with selection");
+        console.log(data);
+      })
+      .catch((error) => {
+        console.log(error);
       });
-    }
-    if (!this.props.vcType) {
-      throw new SubmissionError({
-        vcType: "Please select a VC type",
-        _error: "VC type is required!",
-      });
-    } else {
-      axios
-        .post("/register", {
-          email: values.email,
-          vcType: this.props.vcType,
-        })
-        .then((data) => {
-          console.log("registerd user");
-          this.setRegFinished(true);
-        })
-        .catch((err) => {
-          console.log("an error occured during registration");
-        });
-    }
   };
 
   handleChange = (event) => {
-    console.log(`value changed to ${event.target.value}`);
-    this.props.setVcType(event.target.value);
+    // console.log(`value changed to ${event.target.value}`);
+    this.setState({
+      endorserEmail: event.target.value,
+    });
   };
 
   render() {
-    if (this.props.registrationFinished) {
+    let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
+    let stepperSteps = [
+      { title: "Pair your wallet" },
+      { title: "Declare Self Attested Attributes" },
+      { title: "Request Issuance" },
+    ];
+
+    if (this.props.qrData && isMobile() && !this.props.DID) {
       return (
         <Layout>
           <Row>
             <Col>
-            Please visit the email addresss you provided to verify your email
+              <MyStepper steps={stepperSteps} activeNum={stepNumber} />
             </Col>
           </Row>
+          <ConnectMobile
+            baseUrl={this.props.baseUrl}
+            qrData={this.props.qrData}
+            DID={this.props.DID}
+            uuid={this.props.uuid}
+            serverSessionId={this.props.serverSessionId}
+            sealSession={this.props.sealSession}
+          />
         </Layout>
       );
     }
+
+    let issueVCBut = (
+      <IssueVCButton
+        hasRequiredAttributes={
+          this.props.sessionData !== null &&
+          this.props.sessionData !== undefined &&
+          this.props.sessionData.ebill !== undefined
+        }
+        baseUrl={this.props.baseUrl}
+        userSelection={this.props.userSelection}
+        uuid={this.props.sealSession}
+        vcType={"EBILL"}
+      />
+    );
+
+    let selfCard = (
+      <Card className="text-center" style={{ marginTop: "2rem" }}>
+        <Card.Header>
+          Issue a Verifiable Credential containing self attested attributes
+        </Card.Header>
+        <Card.Body>
+          <Card.Title>
+            {this.hasRequiredAttributes
+              ? "Credentials Issuance is ready!"
+              : "Please authenticate to the required data sources"}
+          </Card.Title>
+          <Card.Text>
+            You have completed the self attestation of the required attributes,
+            click the "Issue" button to generate and receive your VC .
+          </Card.Text>
+          <Container>
+            <Row>
+              <Col>{issueVCBut}</Col>
+            </Row>
+          </Container>
+        </Card.Body>
+      </Card>
+    );
+
+    let result = (
+      <PairOrCard
+        qrData={this.props.qrData}
+        DID={this.props.DID}
+        baseUrl={this.props.baseUrl}
+        uuid={this.props.uuid}
+        serverSessionId={this.props.sealSession}
+        card={selfCard}
+        vcSent={this.props.vcSent}
+        sealSession={this.props.sealSession}
+        formDataUploaded={
+          this.props.sessionData !== null &&
+          this.props.sessionData !== undefined &&
+          this.props.sessionData.ebill !== undefined
+        }
+        selfForm={
+          <EndorsedSupplyForm
+            onSubmit={this.submit}
+            users={this.props.users}
+            handleChange={this.handleChange}
+            endorserEmail={"this.state.endorserEmail"}
+          />
+        }
+      />
+    );
 
     return (
       <Layout>
         <Row>
           <Col>
-            <RegisterForm
-              onSubmit={this.submit}
-              handleChange={this.handleChange}
-              vcType={this.props.vcType}
-            />
+            <MyStepper steps={stepperSteps} activeNum={stepNumber} />
           </Col>
         </Row>
+        {result}
+
         <Row>
           <HomeButton baseUrl={this.props.baseUrl} />
         </Row>
@@ -159,7 +251,6 @@ class RegisterEndorser extends React.Component {
     );
   }
 }
-
 function mapStateToProps(state) {
   return {
     isFetching: state.appReducer.fetching,
@@ -168,6 +259,7 @@ function mapStateToProps(state) {
     userSelection: state.appReducer.userSelection, // the attributes selected by the user to be included in a VC,
     baseUrl: state.appReducer.baseUrl,
     DID: state.appReducer.DID,
+    // serverSessionId: state.serverSessionId,
     uuid: state.appReducer.uuid,
     vcSent: state.appReducer.vcSent,
     sealSession: state.appReducer.sealSession,
@@ -175,9 +267,7 @@ function mapStateToProps(state) {
     eidasPort: state.appReducer.eidasPort,
     endpoint: state.appReducer.endpoint,
     eidasRedirectUri: state.appReducer.eidasRedirectUri,
-    vcType: state.appReducer.vcType,
-    registeredEmail: state.appReducer.registeredEmail,
-    registrationFinished: state.appReducer.registrationFinished,
+    users: state.appReducer.users,
   };
 }
 
@@ -210,16 +300,7 @@ const mapDispatchToProps = (dispatch) => {
     setTheSealSession: (sessionId) => {
       dispatch(setSealSession(sessionId));
     },
-    setVcType: (vcType) => {
-      dispatch(setRegistrationVCType(vcType));
-    },
-    setEmail: (email) => {
-      dispatch(setRegistrationEmail(email));
-    },
-    setRegFinished: (finished) => {
-      dispatch(setRegistrationFinished(finished));
-    },
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(RegisterEndorser);
+export default connect(mapStateToProps, mapDispatchToProps)(IssuePower);

@@ -27,6 +27,10 @@ const initialState = {
   eidasPort: "",
   eidasRedirectUri: "",
   unauthorized: false,
+  vcType: "",
+  registeredEmail: null,
+  registrationFinished: false,
+  users:[]
 };
 
 export const actionTypes = {
@@ -67,11 +71,30 @@ export const actionTypes = {
 
   //
   SET_UNAUTHORIZED: "SET_UNAUTHORIZED",
+  //
+  SET_REGISTRATION_VC_TYPE: "SET_REGISTRATION_VC_TYPE",
+  SET_REGISTRATION_EMAIL: "SET_REGISTRATION_EMAIL",
+  SET_REGISTRATION_FINISHED: "SET_REGISTRATION_FINISHED",
+
+  SET_USERS: "SET_USERS",
 };
 
 // REDUCERS
 const reducer = (state = initialState, action) => {
   switch (action.type) {
+
+    case actionTypes.SET_USERS:
+      return { ...state, users: action.data };
+
+    case actionTypes.SET_REGISTRATION_EMAIL:
+      return { ...state, registeredEmail: action.data };
+
+    case actionTypes.SET_REGISTRATION_FINISHED:
+      return { ...state, registrationFinished: action.data };
+
+    case actionTypes.SET_REGISTRATION_VC_TYPE:
+      return { ...state, vcType: action.data };
+
     case actionTypes.SET_UNAUTHORIZED:
       return { ...state, unauthorized: action.data };
 
@@ -308,7 +331,7 @@ export function updateSession(sessionStatus) {
 }
 
 export function setEndpoint(endpoint) {
-  console.log(`store.js set endpoint to ${endpoint}`)
+  console.log(`store.js set endpoint to ${endpoint}`);
   return (dispatch) => {
     let toDispatch = {
       type: actionTypes.SET_ENDPOINT,
@@ -477,7 +500,7 @@ export function makeAndPushVC(
       })
       .catch((err) => {
         console.log(err);
-        dispatch({ type: actionTypes.SET_UNAUTHORIZED, data:true });
+        dispatch({ type: actionTypes.SET_UNAUTHORIZED, data: true });
       });
     //TODO add here an action denoting that the VC was sent
   };
@@ -617,12 +640,50 @@ export function setEidasRedirectUri(uri) {
   };
 }
 
-
 export function setUnauthorized(value) {
   return (dispatch) => {
     dispatch({
       type: actionTypes.SET_UNAUTHORIZED,
       data: value,
+    });
+  };
+}
+
+export function setRegistrationVCType(value) {
+  return (dispatch) => {
+    dispatch({
+      type: actionTypes.SET_REGISTRATION_VC_TYPE,
+      data: value,
+    });
+  };
+}
+
+export function setRegistrationEmail(value) {
+  return (dispatch) => {
+    dispatch({
+      type: actionTypes.SET_REGISTRATION_EMAIL,
+      data: value,
+    });
+  };
+}
+
+export function setRegistrationFinished(value) {
+  return (dispatch) => {
+    dispatch({
+      type: actionTypes.SET_REGISTRATION_FINISHED,
+      data: value,
+    });
+  };
+}
+
+
+export function setUsers(users) {
+  console.log(`store.js setting users to`)
+  console.log(users)
+  return (dispatch) => {
+    dispatch({
+      type: actionTypes.SET_USERS,
+      data: users,
     });
   };
 }

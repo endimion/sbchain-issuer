@@ -17,14 +17,31 @@ const onlyConnectionRequest = require("./back-controllers/controllers")
 const onlyConnectionResponse = require("./back-controllers/controllers")
   .onlyConnectionResponse;
 const onlyIssueVC = require("./back-controllers/controllers").onlyIssueVC;
+const register = require("./back-controllers/registrationControllers")
+  .registerEndorser;
+const verifyEmail = require("./back-controllers/registrationControllers")
+  .verifyEmail;
+const updateStatus = require("./back-controllers/registrationControllers")
+  .updateStatus;
+const issuePowerSupply = require("./back-controllers/endorsedControllers")
+  .issuePowerSupply;
+const cacheRequestAndEmail = require("./back-controllers/endorsedControllers")
+  .cacheRequestAndEmail;
+const acceptEndorsement = require("./back-controllers/endorsedControllers")
+  .acceptEndorsement;
 
-import { sealIssueVC, issueBenefitVC } from "./back-controllers/sealApiControllers";
+import {
+  sealIssueVC,
+  issueBenefitVC,
+} from "./back-controllers/sealApiControllers";
 import {
   updateSessionData,
   getSessionData,
   startSession,
 } from "./back-services/sessionServices";
-// import { startSession } from "./back-services/sealServices";
+import { RegisterationService } from "./back-services/RegistrationService";
+import { UsersRepo } from "./repository/UserRepo";
+import { getCollection } from "./back-services/MongoClient";
 
 let endpoint = "";
 
@@ -75,36 +92,56 @@ const amkaRealm = {
 };
 
 const mitroRealm = {
-  "realm": "mitroPoliton",
+  realm: "mitroPoliton",
   "auth-server-url": "https://dss1.aegean.gr/auth",
   "ssl-required": "external",
-  "resource": "mitroTest",
-  "credentials": {
-    "secret": "57e8d0b8-e0a2-48a9-81d9-38be4735773a"
+  resource: "mitroTest",
+  credentials: {
+    secret: "57e8d0b8-e0a2-48a9-81d9-38be4735773a",
   },
-  "confidential-port": 0
-}
-
+  "confidential-port": 0,
+};
 
 const SSI = {
-  "realm": "SSI",
+  realm: "SSI",
   "auth-server-url": "https://dss1.aegean.gr/auth",
   "ssl-required": "external",
-  "resource": "testssi",
-  "credentials": {
-    "secret": "8c288fd3-14f9-4f1c-9e03-8ca8b3a3ec67"
+  resource: "testssi",
+  credentials: {
+    secret: "8c288fd3-14f9-4f1c-9e03-8ca8b3a3ec67",
   },
-  "confidential-port": 0
-}
+  "confidential-port": 0,
+};
 
+const SBPower = {
+  realm: "sbadmin",
+  "auth-server-url": "https://dss1.aegean.gr/auth",
+  "ssl-required": "external",
+  resource: "sbchain",
+  credentials: {
+    secret: "8a8afc9d-67d8-4823-9ec7-28e7033e259a",
+  },
+  "confidential-port": 0,
+};
 
-
+const taxisReaml = {
+  realm: "taxis",
+  "auth-server-url": "https://dss1.aegean.gr/auth",
+  "ssl-required": "external",
+  resource: "sbchain",
+  credentials: {
+    secret: "a8462c15-f0da-4403-9d90-698d1a5862d9",
+  },
+  "confidential-port": 0,
+};
 
 const keycloak = new KeycloakMultiRealm({ store: memoryStore }, [
   amkaRealm,
   eidasRealmConfig,
   mitroRealm,
-  SSI
+  SSI,
+  SBPower,
+  taxisReaml,
 ]);
 
 //end of keycloak config
@@ -196,7 +233,6 @@ app.prepare().then(() => {
     return issueBenefitVC(req, res);
   });
 
-
   server.post(["/vc/start-session"], async (req, res) => {
     let sessionId = await startSession();
     console.log(`server.js -- /vc/start-session:: just created ${sessionId}`);
@@ -229,12 +265,11 @@ app.prepare().then(() => {
     }
   );
 
- 
   server.get(
     ["/SSI/benefit-authenticate", "/sbchain/SSI/benefit-authenticate"],
     keycloak.protect(),
     async (req, res) => {
-      console.log(`reached SSI/benefit-authenticate`)
+      console.log(`reached SSI/benefit-authenticate`);
       const sessionId = req.query.session;
       const idToken = req.kauth.grant.access_token.content;
       const taxisDetails = {
@@ -243,29 +278,27 @@ app.prepare().then(() => {
         source: "TAXIS",
       };
       //store response in cache
-      console.log(`server.js SSI/benefit-authenticate , checking dataStore`)
+      console.log(`server.js SSI/benefit-authenticate , checking dataStore`);
 
       let dataStore = await getSessionData(sessionId, "dataStore");
       if (!dataStore) {
         dataStore = {};
       }
 
-      console.log(`server.js SSI/benefit-authenticate , datastore ok`)
+      console.log(`server.js SSI/benefit-authenticate , datastore ok`);
       dataStore["TAXIS"] = taxisDetails;
       await updateSessionData(sessionId, "dataStore", dataStore);
-      console.log(`server.js SSI/benefit-authenticate , sessionData updated`)
+      console.log(`server.js SSI/benefit-authenticate , sessionData updated`);
 
-      req.session.userData = {"taxis": taxisDetails};
+      req.session.userData = { taxis: taxisDetails };
       req.session.sealSession = sessionId;
       req.session.DID = true;
       req.session.endpoint = endpoint;
       req.session.baseUrl = process.env.BASE_PATH;
-      console.log(`server.js will render /vc/issue/benefit`)
+      console.log(`server.js will render /vc/issue/benefit`);
       return app.render(req, res, "/vc/issue/benefit", req.query);
     }
   );
-
-
 
   server.get(
     [
@@ -396,41 +429,82 @@ app.prepare().then(() => {
     }
   );
 
+  // server.get(
+  //   ["/taxis/taxis-authenticate", "/sbchain/taxis/taxis-authenticate"],
+  //   // keycloak.protect(),
+  //   async (req, res) => {
+  //     const sessionId = req.query.session;
+  //     console.log(`server.js  ---> taxis/taxis-authenticate I go the sesionID`)
+  //     console.log(sessionId);
+  //     // const idToken = req.kauth.grant.access_token.content;
+  //     const taxisDetails = {
+  //       afm: "070892XX",
+  //       amka: "051083046XX",
+  //       lastName: "Τριανταφύλλου",
+  //       fistName: "Νικόλαος",
+  //       fathersName: "Αναστάσιος",
+  //       mothersName: "Αγγελική",
+  //       fathersNameLatin: "Anastasios",
+  //       mothersNameLatin: "Aggeliki",
+  //       firstNameLatin: "Nikolaos",
+  //       lastNameLatin: "Triantafyllou",
+  //       gender: "male",
+  //       nationality: "Greek",
+  //       loa: "low",
+  //       source: "TAXIS",
+  //       dateOfBirth:"05/10/1983",
+  //       householdComposition: [{name:"Katerina",relation:"wife"},{name:"xx",relation:"daughter"}],
+  //       address: {
+  //         street: "Καλλ***",
+  //         streetNumber: "**",
+  //         PO: "15***",
+  //         municipality: "Ζ**",
+  //         prefecture: "Αττικής"
+
+  //       }
+  //     };
+
+  //     //store response in cache
+  //     let dataStore = await getSessionData(sessionId, "dataStore");
+  //     if (!dataStore) {
+  //       dataStore = {};
+  //     }
+  //     dataStore["TAXIS"] = taxisDetails;
+  //     await updateSessionData(sessionId, "dataStore", dataStore);
+  //     dataStore = await getSessionData(sessionId, "dataStore");
+  //     if (req.session.userData) {
+  //       req.session.userData.taxis = taxisDetails;
+  //     } else {
+  //       req.session.userData = {};
+  //       req.session.userData.taxis = taxisDetails;
+  //     }
+  //     req.session.baseUrl = process.env.BASE_PATH;
+
+  //     req.session.DID = true;
+  //     req.session.sealSession = sessionId;
+
+  //     return app.render(req, res, "/vc/issue/taxis", req.query);
+  //   }
+  // );
+
   server.get(
     ["/taxis/taxis-authenticate", "/sbchain/taxis/taxis-authenticate"],
-    // keycloak.protect(),
+    keycloak.protect(),
     async (req, res) => {
+      console.log("we accessed a protected root!");
       const sessionId = req.query.session;
-      console.log(`server.js  ---> taxis/taxis-authenticate I go the sesionID`)
-      console.log(sessionId);
-      // const idToken = req.kauth.grant.access_token.content;
+      // see mockJwt.json for example response
+      const idToken = req.kauth.grant.access_token.content;
       const taxisDetails = {
-        afm: "070892XX",
-        amka: "051083046XX",
-        lastName: "Τριανταφύλλου",
-        fistName: "Νικόλαος",
-        fathersName: "Αναστάσιος",
-        mothersName: "Αγγελική",
-        fathersNameLatin: "Anastasios",
-        mothersNameLatin: "Aggeliki",
-        firstNameLatin: "Nikolaos",
-        lastNameLatin: "Triantafyllou",
-        gender: "male",
-        nationality: "Greek",
+        fistName: idToken.fistName ,//"Νικόλαος",
+        afm: idToken.afm,
+        lastName: idToken.lastName, //"Τριανταφύλλου",
+        fathersName: idToken.fathersName,
+        mothersName: idToken.mothersName,
+        dateOfBirth: idToken.dateOfBirth, //"05/10/1983",
         loa: "low",
         source: "TAXIS",
-        dateOfBirth:"05/10/1983",
-        householdComposition: [{name:"Katerina",relation:"wife"},{name:"xx",relation:"daughter"}],
-        address: {
-          street: "Καλλ***",
-          streetNumber: "**",
-          PO: "15***",
-          municipality: "Ζ**",
-          prefecture: "Αττικής"
-
-        }
       };
-
       //store response in cache
       let dataStore = await getSessionData(sessionId, "dataStore");
       if (!dataStore) {
@@ -479,7 +553,7 @@ app.prepare().then(() => {
             let e1Details = JSON.parse(data).users;
             e1Details.source = "E1";
             e1Details.loa = "low";
-            console.log("E1 DETAILS IS::")
+            console.log("E1 DETAILS IS::");
             console.log(e1Details);
             let dataStore = await getSessionData(sessionId, "dataStore");
             if (!dataStore) {
@@ -530,7 +604,6 @@ app.prepare().then(() => {
     return res.sendStatus(200);
   });
 
-
   server.post(["/ebill/store", "/issuer/ebill/store"], async (req, res) => {
     console.log("server.js:: /self/store");
 
@@ -569,77 +642,119 @@ app.prepare().then(() => {
     return res.sendStatus(200);
   });
 
-  server.post(["/mitro-mock/store", "/issuer/mitro-mock/store"], async (req, res) => {
-    console.log("server.js:: /mitro-mock/store");
-    const sessionId = req.body.session;
-    const contactDetails = req.body.details;
-    contactDetails.loa = "low";
-    contactDetails.source = "mitro";
-    //store response in cache
-    let dataStore = await getSessionData(sessionId, "dataStore");
-    if (!dataStore) {
-      dataStore = {};
+  server.post(
+    ["/mitro-mock/store", "/issuer/mitro-mock/store"],
+    async (req, res) => {
+      console.log("server.js:: /mitro-mock/store");
+      const sessionId = req.body.session;
+      const contactDetails = req.body.details;
+      contactDetails.loa = "low";
+      contactDetails.source = "mitro";
+      //store response in cache
+      let dataStore = await getSessionData(sessionId, "dataStore");
+      if (!dataStore) {
+        dataStore = {};
+      }
+      dataStore["mitro"] = contactDetails;
+      await updateSessionData(sessionId, "dataStore", dataStore);
+      dataStore = await getSessionData(sessionId, "dataStore");
+      console.log(dataStore);
+      return res.sendStatus(200);
     }
-    dataStore["mitro"] = contactDetails;
-    await updateSessionData(sessionId, "dataStore", dataStore);
-    dataStore = await getSessionData(sessionId, "dataStore");
-    console.log(dataStore);
-    return res.sendStatus(200);
-  });
+  );
 
   server.get(["/vc/issue/amka"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/amka", req.query);
-  })
-  
+  });
+
   server.get(["/vc/issue/contact"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/contact", req.query);
-  })
+  });
 
   server.get(["/vc/issue/e1"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/e1", req.query);
-  })
+  });
 
   server.get(["/vc/issue/ebill"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/ebill", req.query);
-  })
+  });
 
   server.get(["/vc/issue/mitro"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/mitro", req.query);
-  })
+  });
 
   server.get(["/vc/issue/mitromock"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/mitromock", req.query);
-  })
+  });
 
   server.get(["/vc/issue/self"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/self", req.query);
-  })
+  });
 
   server.get(["/vc/issue/taxis"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/taxis", req.query);
-  })
+  });
 
   server.get(["/vc/issue/benefit"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
     return app.render(req, res, "/vc/issue/benefit", req.query);
-  })
+  });
+
+  server.post("/register", async (req, res) => {
+    return register(req, res);
+  });
+
+  server.get("/verify", async (req, res) => {
+    return verifyEmail(req, res);
+  });
+
+  //keycloak.protect()
+  server.get("/sbadmin/admin", async (req, res) => {
+    let regServ = await RegisterationService(
+      await UsersRepo(await getCollection())
+    );
+    let verifiedUsers = await regServ.getVerifiedUsers();
+    req.session.users = verifiedUsers;
+    return app.render(req, res, "/admin/admin", req.query);
+  });
+
+  server.post("/activate", async (req, res) => {
+    return updateStatus(req, res);
+  });
+
+  server.get("/endorse/issue/powersupply", async (req, res) => {
+    console.log("server.js rendering issuePowerSupply");
+    return issuePowerSupply(req, res, app);
+  });
+
+  server.post("/endorse/cacheRequest", async (req, res) => {
+    console.log("server.js /endorse/cacheRequest");
+    req.session.endpoint = endpoint;
+    return cacheRequestAndEmail(req, res);
+  });
+
+  server.get("/acceptEndorsement", async (req, res) => {
+    console.log("server.js /endorse/acceptEndorsement");
+    req.session.endpoint = endpoint;
+    return acceptEndorsement(req, res, app);
+  });
 
   // #############################################################################
 

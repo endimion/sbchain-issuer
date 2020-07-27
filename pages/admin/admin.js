@@ -3,7 +3,6 @@ import axios from "axios";
 import { SubmissionError } from "redux-form";
 
 import {
-  setSessionData,
   makeOnlyConnectionRequest,
   addSetToSelection,
   setStepperSteps,
@@ -17,12 +16,21 @@ import {
   setRegistrationVCType,
   setRegistrationEmail,
   setRegistrationFinished,
+  setUsers,
 } from "../../store";
 import Layout from "../../components/Layout";
 import { connect } from "react-redux";
-import { Button, Row, Col, Card, Container } from "react-bootstrap";
-import HomeButton from "../../components/HomeButton";
-import RegisterForm from "../../components/registerForm";
+import {  Row, Col, Card } from "react-bootstrap";
+import Table from "@material-ui/core/Table";
+import TableBody from "@material-ui/core/TableBody";
+import TableCell from "@material-ui/core/TableCell";
+import TableContainer from "@material-ui/core/TableContainer";
+import TableHead from "@material-ui/core/TableHead";
+import TableRow from "@material-ui/core/TableRow";
+import Paper from "@material-ui/core/Paper";
+// import ActiaveEndorserButton from "../../components/ActivateEndorserButton";
+import ActivateEndorserButton from "../../components/ActivateEndorserButton";
+
 
 const transport = require("uport-transports").transport;
 /*
@@ -40,57 +48,27 @@ class RegisterEndorser extends React.Component {
   constructor(props) {
     super(props);
     this.dispatch = props.dispatch;
-    this.isFetching = props.isFetching;
     this.sessionData = props.sessionData;
-    this.hasRequiredAttributes =
-      props.sessionData !== null &&
-      props.sessionData !== undefined &&
-      props.sessionData.ebill !== undefined;
   }
 
   static async getInitialProps({ reduxStore, req }) {
-    let userSessionData;
-    let DIDOk;
+    let users;
     let sealSession;
     if (typeof window === "undefined") {
-      userSessionData = req.session.userData;
       reduxStore.dispatch(setEndpoint(req.session.enpoint));
       let baseUrl = req.session.baseUrl ? `/${req.session.baseUrl}/` : "";
       reduxStore.dispatch(setBaseUrl(baseUrl));
       // reduxStore.dispatch(setServerSessionId(req.session.sealSession));
-      DIDOk = req.session.DID;
+      users = req.session.users;
+      reduxStore.dispatch(setUsers(users));
       sealSession = req.session.sealSession;
-      console.log(
-        `self.js:: in the server the seal session is:: ${req.session.sealSession}`
-      );
     } else {
-      if (reduxStore.getState().sessionData) {
-        userSessionData = reduxStore.getState().sessionData;
-        DIDOk = reduxStore.getState().DID;
-        //if ther is sessionData then there should be a session as well
-        sealSession = reduxStore.getState().sealSession;
-      } else {
-        console.log(`no server session data found`);
-      }
+      users = reduxStore.getState().users;
+      //if ther is sessionData then there should be a session as well
+      sealSession = reduxStore.getState().sealSession;
     }
-
-    //this way the userSessionData gets set in all settings
-    if (userSessionData) {
-      reduxStore.dispatch(setSessionData(userSessionData));
-    }
-    if (DIDOk) {
-      reduxStore.dispatch(completeDIDAuth(sealSession));
-      reduxStore.dispatch(setSealSession(sealSession));
-    }
-
-    //returned value here is getting mered with the mapstatetoprops
-    // mapstatetoprops overrides these values if they match
     return {
-      sessionData: userSessionData,
-      qrData: reduxStore.getState().qrData,
-      vcSent: false,
       sealSession: reduxStore.getState().sealSession,
-      vcType: "",
     };
   }
 
@@ -123,37 +101,69 @@ class RegisterEndorser extends React.Component {
     }
   };
 
-  handleChange = (event) => {
-    console.log(`value changed to ${event.target.value}`);
-    this.props.setVcType(event.target.value);
-  };
-
   render() {
-    if (this.props.registrationFinished) {
-      return (
-        <Layout>
-          <Row>
-            <Col>
-            Please visit the email addresss you provided to verify your email
-            </Col>
-          </Row>
-        </Layout>
-      );
-    }
+    const tableStyle = {
+      minWidth: "650",
+      marginTop: "6rem",
+    };
 
     return (
       <Layout>
         <Row>
           <Col>
-            <RegisterForm
-              onSubmit={this.submit}
-              handleChange={this.handleChange}
-              vcType={this.props.vcType}
-            />
+            <TableContainer style={tableStyle} component={Paper}>
+              <Table  aria-label="simple table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Endorsers</TableCell>
+                    <TableCell align="right">Email</TableCell>
+                    <TableCell align="right">VcType</TableCell>
+                    <TableCell align="right">Verified</TableCell>
+                    <TableCell align="right">Status</TableCell>
+                    <TableCell align="right"></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {this.props.users.map((row) => {
+                    console.log(row);
+                    console.log(
+                      row["vcType"].reduce((total, current) => {
+                        total + " " + current;
+                      }, "")
+                    );
+                    console.log(row["status"]);
+                    return (
+                      <TableRow key={row.email}>
+                        <TableCell component="th" scope="row">
+                          {row.email}
+                        </TableCell>
+                        <TableCell align="right">{row.email}</TableCell>
+                        <TableCell align="right">
+                          {row["vcType"].reduce((total, current) => {
+                            return total + "\n" + current;
+                          }, "")}
+                        </TableCell>
+                        <TableCell align="right">
+                          {row.verified ? "Verified" : "UnVerified"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {row["status"] ? "Active" : "InActive"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {" "}
+                          <ActivateEndorserButton
+                            active={row["status"]}
+                            email={row.email}
+                            users={this.props.users}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Col>
-        </Row>
-        <Row>
-          <HomeButton baseUrl={this.props.baseUrl} />
         </Row>
       </Layout>
     );
@@ -162,30 +172,17 @@ class RegisterEndorser extends React.Component {
 
 function mapStateToProps(state) {
   return {
-    isFetching: state.appReducer.fetching,
-    qrData: state.appReducer.qrData,
     sessionData: state.appReducer.sessionData,
     userSelection: state.appReducer.userSelection, // the attributes selected by the user to be included in a VC,
     baseUrl: state.appReducer.baseUrl,
-    DID: state.appReducer.DID,
-    uuid: state.appReducer.uuid,
-    vcSent: state.appReducer.vcSent,
     sealSession: state.appReducer.sealSession,
-    eidasUri: state.appReducer.eidasUri,
-    eidasPort: state.appReducer.eidasPort,
     endpoint: state.appReducer.endpoint,
-    eidasRedirectUri: state.appReducer.eidasRedirectUri,
-    vcType: state.appReducer.vcType,
-    registeredEmail: state.appReducer.registeredEmail,
-    registrationFinished: state.appReducer.registrationFinished,
+    users: state.appReducer.users,
   };
 }
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    setEBillToSession: (userSessionData) => {
-      dispatch(setSessionData(userSessionData));
-    },
     setSefToSelection: (set) => {
       dispatch(addSetToSelection(set));
     },
@@ -218,6 +215,10 @@ const mapDispatchToProps = (dispatch) => {
     },
     setRegFinished: (finished) => {
       dispatch(setRegistrationFinished(finished));
+    },
+
+    setTheUsers: (users) => {
+      dispatch(setUsers(users));
     },
   };
 };
