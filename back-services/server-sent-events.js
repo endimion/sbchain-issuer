@@ -11,11 +11,14 @@ function publish(eventData) {
 
 
 function subscribe(req, res) {
+  
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive"
   });
+
+  console.log("server-sent-events.js:: new subsscription!!!")
 
   // Heartbeat
   const nln = function() {

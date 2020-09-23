@@ -132,7 +132,7 @@ class IssueE1 extends React.Component {
     let sessionFrag = this.props.sealSession
       ? `?session=${this.props.sealSession}`
       : "";
-    window.location.href = `${this.props.baseUrl}/e1/getData${sessionFrag}`;
+    window.location.href = (this.props.baseUrl === "")? `/e1/getData${sessionFrag}`  : `${this.props.baseUrl}e1/getData${sessionFrag}`;
   }
 
   render() {
@@ -157,8 +157,8 @@ class IssueE1 extends React.Component {
             qrData={this.props.qrData}
             DID={this.props.DID}
             uuid={this.props.uuid}
-            serverSessionId={this.props.serverSessionId}
-            sealSession={this.props.sealSession}
+            serverSessionId={this.props.uuid}
+            sealSession={this.props.uuid}
           />
         </Layout>
       );

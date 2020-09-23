@@ -24,7 +24,7 @@ class IssueVCButton extends React.Component {
       ? `${this.props.baseUrl}seal/issueVC`
       : `/seal/issueVC`;
     console.log(
-      `will send request for ${url} with ${this.props.userSelection}, ty[e ${vcType} isMobile ${isMobile()}`
+      `will send request for ${url} type ${vcType} isMobile ${isMobile()}`
     );
     this.props.sendVC(`${url}`, this.props.userSelection, vcType, this.props.uuid, isMobile());
   }
@@ -52,6 +52,8 @@ function mapStateToProps(state) {
 const mapDispatchToProps = dispatch => {
   return {
     sendVC: (url, userSelection, vcType, uuid, isMobile) => {
+      consnole.log("issueVCButton.js user mapDispatchToProps")
+      console.log(userSelection)
       dispatch(makeAndPushVC(url, userSelection, vcType, uuid, isMobile));
     }
   };

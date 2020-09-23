@@ -4,6 +4,8 @@ const pushTransport = require("uport-transports").transport.push;
 const crypto = require("crypto");
 import { Resolver } from 'did-resolver'
 import { getResolver } from 'ethr-did-resolver'
+import { uuid } from 'uuidv4';
+import {uintToBase36} from 'base36id';
 
 import {
   updateSessionData,
@@ -77,20 +79,22 @@ async function sealIssueVC(req, res) {
   // GET data from SM, parse them in the form of userSessionData, and proceed with the issuance
   let fetchedData = dataStore;
   let vcData = generateCredentialModel(requestedData, fetchedData, vcType);
-  console.log(`sealApiControllers.js -- sealIssueVC:: vcData::`);
-  console.log(vcData);
+  vcData.id = uintToBase36(Math.floor(Math.random() * Math.floor(100000000)))
+  let expirationInMonths = process.env("EXPIRE_MONTHS")?process.env("EXPIRE_MONTHS"):3
+  
   credentials
     .createVerification({
       sub: didResp.did,
-      exp: Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60,
+      exp: (Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60)*3,
       claim: vcData,
-      vc: ["/ipfs/QmNbicKYQKCsc7GMXSSJMpvJSYgeQ9K2tH15EnbxTydxfQ"],
+      vc: ["/ipfs/QmWLCkXmpQSQG6kcf88kZbNCRHFbfZzHG8hSbdn7QndQTL"],
     })
     .then((attestation) => {
       let push = pushTransport.send(didResp.pushToken, didResp.boxPub);
       console.log(
         `sealApiControllers.js -- sealIssueVC:: pushingn to wallet::`
       );
+      console.log("!!!!The credential beingn pushed is!!!!: ");
       console.log(attestation);
       return push(attestation);
     })
@@ -153,7 +157,7 @@ async function issueBenefitVC(req, res) {
         sub: didResp.did,
         exp: Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60,
         claim: vcData,
-        vc: ["/ipfs/QmNbicKYQKCsc7GMXSSJMpvJSYgeQ9K2tH15EnbxTydxfQ"],
+        vc: ["/ipfs/QmWLCkXmpQSQG6kcf88kZbNCRHFbfZzHG8hSbdn7QndQTL"],
       })
       .then((attestation) => {
         let push = pushTransport.send(didResp.pushToken, didResp.boxPub);

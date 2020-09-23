@@ -17,6 +17,7 @@ class SSE extends React.Component {
     this.eventSource.addEventListener(
       "event",
       evt => {
+        
         const data = JSON.parse(evt.data); //returns a string so needs further parsing into a JSON
         // Use data here
         let eventData = JSON.parse(data);
@@ -24,6 +25,8 @@ class SSE extends React.Component {
           console.log(
             `SSE.js -- componentDidMount:: got ${eventData.sessionId} and the current session id is ${this.props.serverSessionId}`
           );
+          alert(`my session id is ${this.props.serverSessionId}`)
+          alert(`received is ${eventData.sessionId}`)
           if (eventData.sessionId === this.props.serverSessionId) {
             console.log(`SSE.js -- componentDidMount:: sessionsMatch!!`);
             console.log(

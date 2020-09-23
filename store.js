@@ -484,9 +484,8 @@ export function makeAndPushVC(
   return (dispatch) => {
     let bodyFormData = new FormData();
     bodyFormData.set("data", selectedAttributes);
-    console.log("store.js - makeAndPushVC:: will make VC generation request");
-
-    console.log(`store.js :: makeandpushVC:: ${url}, and ${vcType}`);
+    console.log("store.js - makeAndPushVC:: will make VC generation request with attributes");
+    console.log(selectedAttributes)
     axios
       .post(url, {
         data: selectedAttributes,

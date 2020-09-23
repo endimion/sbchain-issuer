@@ -15,8 +15,8 @@ const ConnectMobile = (props) => {
   });
 
   let sseEndpoint = props.baseUrl
-      ? `${props.endpoint}/${props.baseUrl}`
-      : props.endpoint;
+    ? `${props.endpoint}/${props.baseUrl}`
+    : props.endpoint;
 
   return (
     <Container>

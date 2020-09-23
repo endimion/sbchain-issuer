@@ -309,7 +309,9 @@ app.prepare().then(() => {
     async (req, res) => {
       const sessionId = req.query.session;
       const idToken = req.kauth.grant.access_token.content;
-      const taxisDetails = {
+      console.log("server.js:: MITRO RESPONSE")
+      console.log(idToken)
+      const mitroDetails = {
         // birthcountry: idToken.birthcountry,
         // birthdate: idToken.birthdate,
         // birthmuniccomm: idToken.birthmuniccomm,
@@ -354,8 +356,17 @@ app.prepare().then(() => {
         // surname: idToken.surname,
         gender: idToken.gender,
         nationality: idToken.mainnationality,
-        singleParent: idToken.spousemarriagerank ? false : true,
+        singleParent: idToken.spousemarriagerank ? "false" : "true",
         maritalStatus: idToken.marriagerank ? "married" : "divorced",
+        motherLatin: idToken.motherEn,
+        fatherLatin: idToken.fatherEn,
+        nameLatin: idToken.nameEn,
+        surnameLatin: idToken.surnameEn,
+        birthdate: idToken.birthDate,
+        amka: idToken.amka,
+        parenthood: idToken.parenthood,
+        protectedMembers: idToken.protectedMembers,
+        custody:  idToken.marriagerank ?"true":idToken.custody,
         loa: "low",
         source: "MITRO",
       };
@@ -365,15 +376,15 @@ app.prepare().then(() => {
       if (!dataStore) {
         dataStore = {};
       }
-      dataStore["MITRO"] = taxisDetails;
+      dataStore["MITRO"] = mitroDetails;
       await updateSessionData(sessionId, "dataStore", dataStore);
       dataStore = await getSessionData(sessionId, "dataStore");
       // make response available in front end
-      if (req.session.e1DetailsData) {
-        req.session.e1DetailsData.mitro = taxisDetails;
+      if (req.session.userData) {
+        req.session.userData.mitro = mitroDetails;
       } else {
-        req.session.e1DetailsData = {};
-        req.session.e1DetailsData.mitro = taxisDetails;
+        req.session.userData = {};
+        req.session.userData.mitro = mitroDetails;
       }
       req.session.baseUrl = process.env.BASE_PATH;
 

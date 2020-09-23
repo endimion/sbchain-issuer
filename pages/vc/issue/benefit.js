@@ -152,8 +152,8 @@ class IssueBenefit extends React.Component {
             qrData={this.props.qrData}
             DID={this.props.DID}
             uuid={this.props.uuid}
-            serverSessionId={this.props.serverSessionId}
-            sealSession={this.props.sealSession}
+            serverSessionId={this.props.uuid}
+            sealSession={this.props.uuid}
           />
         </Layout>
       );
