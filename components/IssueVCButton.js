@@ -52,8 +52,8 @@ function mapStateToProps(state) {
 const mapDispatchToProps = dispatch => {
   return {
     sendVC: (url, userSelection, vcType, uuid, isMobile) => {
-      consnole.log("issueVCButton.js user mapDispatchToProps")
-      console.log(userSelection)
+      // consnole.log("issueVCButton.js user mapDispatchToProps")
+      // console.log(userSelection)
       dispatch(makeAndPushVC(url, userSelection, vcType, uuid, isMobile));
     }
   };

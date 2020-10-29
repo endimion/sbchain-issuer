@@ -30,7 +30,8 @@ const initialState = {
   vcType: "",
   registeredEmail: null,
   registrationFinished: false,
-  users:[]
+  users: [],
+  endorsement : null,
 };
 
 export const actionTypes = {
@@ -77,11 +78,14 @@ export const actionTypes = {
   SET_REGISTRATION_FINISHED: "SET_REGISTRATION_FINISHED",
 
   SET_USERS: "SET_USERS",
+  SET_ENDORSEMENT: "SET_ENDORSEMENT",
 };
 
 // REDUCERS
 const reducer = (state = initialState, action) => {
   switch (action.type) {
+    case actionTypes.SET_ENDORSEMENT:
+      return { ...state, endorsement: action.data };
 
     case actionTypes.SET_USERS:
       return { ...state, users: action.data };
@@ -479,20 +483,28 @@ export function makeAndPushVC(
   selectedAttributes,
   vcType,
   sealSession,
-  isMobile = false
+  isMobile = false,
+  caseId = undefined
 ) {
   return (dispatch) => {
     let bodyFormData = new FormData();
     bodyFormData.set("data", selectedAttributes);
-    console.log("store.js - makeAndPushVC:: will make VC generation request with attributes");
-    console.log(selectedAttributes)
+    console.log(
+      "store.js - makeAndPushVC:: will make VC generation request with attributes"
+    );
+    console.log(selectedAttributes);
+    let postBody = {
+      data: selectedAttributes,
+      sealSession: sealSession,
+      vcType: vcType,
+      isMobile: isMobile,
+    };
+    if (caseId) {
+      postBody.caseId = caseId;
+    }
+
     axios
-      .post(url, {
-        data: selectedAttributes,
-        sealSession: sealSession,
-        vcType: vcType,
-        isMobile: isMobile,
-      })
+      .post(url, postBody)
       .then((data) => {
         console.log("store.js- makeAndPushVC:: got the data form the server");
         dispatch({ type: actionTypes.VC_SENT_TO_USER });
@@ -675,10 +687,9 @@ export function setRegistrationFinished(value) {
   };
 }
 
-
 export function setUsers(users) {
-  console.log(`store.js setting users to`)
-  console.log(users)
+  console.log(`store.js setting users to`);
+  console.log(users);
   return (dispatch) => {
     dispatch({
       type: actionTypes.SET_USERS,
@@ -686,6 +697,19 @@ export function setUsers(users) {
     });
   };
 }
+
+export function setEndorsement(endorsement){
+  console.log(`store.js setEndorsement called`);
+  return (dispatch) => {
+    dispatch({
+      type: actionTypes.SET_ENDORSEMENT,
+      data: endorsement,
+    });
+  };
+
+}
+
+
 
 const rootReducer = combineReducers({
   // ...your other reducers here

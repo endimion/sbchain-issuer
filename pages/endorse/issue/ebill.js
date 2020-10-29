@@ -1,4 +1,5 @@
 import React from "react";
+import axios from "axios";
 
 import {
   setSessionData,
@@ -7,22 +8,23 @@ import {
   setStepperSteps,
   setEndpoint,
   setBaseUrl,
+  // setServerSessionId,
   completeDIDAuth,
   makeSealSession,
   makeSessionWithDIDConnecetionRequest,
   setSealSession,
   setEidasUriPort,
   setEidasRedirectUri,
-  setUnauthorized
 } from "../../../store";
 import Layout from "../../../components/Layout";
 import { connect } from "react-redux";
 import { Button, Row, Col, Card, Container } from "react-bootstrap";
 import MyStepper from "../../../components/Stepper";
 import HomeButton from "../../../components/HomeButton";
-import IssueBenefitButton from "../../../components/IssueBenefitButton";
+import IssueVCButton from "../../../components/IssueVCButton";
 import PairOrCard from "../../../components/PairOrCard";
 import isMobile from "../../../helpers/isMobile";
+import EndorseBillForm from "../../../components/endorseBillForm";
 import ConnectMobile from "../../../components/ConnectMobile"
 
 const transport = require("uport-transports").transport;
@@ -37,35 +39,32 @@ const transport = require("uport-transports").transport;
 
 */
 
-class IssueBenefit extends React.Component {
+class IssueEbill extends React.Component {
   constructor(props) {
     super(props);
     this.dispatch = props.dispatch;
     this.isFetching = props.isFetching;
     this.sessionData = props.sessionData;
-    this.proceedWithTaxisAuth = this.proceedWithTaxisAuth.bind(this);
     this.hasRequiredAttributes =
       props.sessionData !== null &&
       props.sessionData !== undefined &&
-      props.sessionData.taxis !== undefined;
+      props.sessionData.ebill !== undefined;
   }
 
   static async getInitialProps({ reduxStore, req }) {
     let userSessionData;
     let DIDOk;
     let sealSession;
-    let caseId;
     if (typeof window === "undefined") {
-      caseId = req.session.caseId;
       userSessionData = req.session.userData;
-      console.log(`benefit.js setting endpoint to ${req.session.endpoint}`)
-      reduxStore.dispatch(setEndpoint(req.session.endpoint));
+      reduxStore.dispatch(setEndpoint(req.session.enpoint));
       let baseUrl = req.session.baseUrl ? `/${req.session.baseUrl}/` : "";
       reduxStore.dispatch(setBaseUrl(baseUrl));
+      // reduxStore.dispatch(setServerSessionId(req.session.sealSession));
       DIDOk = req.session.DID;
       sealSession = req.session.sealSession;
       console.log(
-        `benefit.js:: in the server the seal session is:: ${req.session.sealSession}`
+        `self.js:: in the server the seal session is:: ${req.session.sealSession}`
       );
     } else {
       if (reduxStore.getState().sessionData) {
@@ -73,7 +72,6 @@ class IssueBenefit extends React.Component {
         DIDOk = reduxStore.getState().DID;
         //if ther is sessionData then there should be a session as well
         sealSession = reduxStore.getState().sealSession;
-      
         // serverSessionId = reduxStore.getState().serverSessionId;
       } else {
         console.log(`no server session data found`);
@@ -89,8 +87,6 @@ class IssueBenefit extends React.Component {
       reduxStore.dispatch(setSealSession(sealSession));
     }
 
-    console.log(`the endpoint is ${reduxStore.getState().endpoint}`)
-
     //returned value here is getting mered with the mapstatetoprops
     // mapstatetoprops overrides these values if they match
     return {
@@ -98,17 +94,10 @@ class IssueBenefit extends React.Component {
       qrData: reduxStore.getState().qrData,
       vcSent: false,
       sealSession: reduxStore.getState().sealSession,
-      caseId: caseId
-      // endpoint : reduxStore.getState().endpoint,
     };
   }
 
   componentDidMount() {
-    if (this.props.sessionData && this.props.sessionData.taxis) {
-      let toSelect = [this.props.sessionData.taxis];
-      this.props.setDataToSelection(toSelect);
-    }
-
     if (!this.props.DID) {
       //if DID auth has not been completed
       if (!this.props.sealSession) {
@@ -121,24 +110,44 @@ class IssueBenefit extends React.Component {
         );
       }
     }
-    // on refresh unauthorized status must be checked
-    this.props.setUnAuthorised(false);
   }
 
  
-  proceedWithTaxisAuth() {
-    let caseIdFrag = this.props.caseId !== undefined? `&&caseId=${this.props.caseId}`:""
-    let sessionFrag = this.props.sealSession?`?session=${this.props.sealSession}${caseIdFrag}`:'';
-    window.location.href = this.props.baseUrl === ""?`/SSI/benefit-authenticate${sessionFrag}`:
-    `${this.props.endpoint}${this.props.baseUrl}SSI/benefit-authenticate${sessionFrag}`;
-  }
+  submit = (values) => {
+   
+    console.log(values);
+    values.source = "ebill";
+    values.address = {
+      'street': values.street,
+      'number': values.number,
+      'municipality': values.municipality,
+      'po':values.po 
+    }
+
+    let toSelect = [values];
+    this.props.setSefToSelection(toSelect);
+    axios
+      .post("../../endorse/ebill/store", {
+        session: this.props.sealSession,
+        details: values,
+      })
+      .then((data) => {
+        console.log("updated backend with selection");
+        console.log(data)
+        this.props.setEBillToSession({ ebill: values });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
 
   render() {
+
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
       { title: "Pair your wallet" },
-      { title: 'Authenticate over "Taxis"' },
-      { title: "Request Issuance" },
+      { title: "Declare Self Attested Attributes" },
+      // { title: "Request Endorsement" },
     ];
 
 
@@ -163,28 +172,25 @@ class IssueBenefit extends React.Component {
       );
     }
 
-    let taxisLoginButton = !this.hasRequiredAttributes ? (
-      <Button onClick={this.proceedWithTaxisAuth}>TAXISnet login</Button>
-    ) : (
-      <Button variant="primary" disabled>
-        Authenticate
-      </Button>
-    );
-
     let issueVCBut = (
-      <IssueBenefitButton
-        hasRequiredAttributes={this.hasRequiredAttributes}
+      <IssueVCButton
+        hasRequiredAttributes={
+          this.props.sessionData !== null &&
+          this.props.sessionData !== undefined &&
+          this.props.sessionData.ebill !== undefined
+        }
         baseUrl={this.props.baseUrl}
         userSelection={this.props.userSelection}
         uuid={this.props.sealSession}
-        caseId={this.props.caseId}
-        vcType={"BENEFIT"}
+        vcType={"EBILL"}
       />
     );
 
-    let eidasCard = (
+    let selfCard = (
       <Card className="text-center" style={{ marginTop: "2rem" }}>
-        <Card.Header>Issue a Verifiable Credential allowing you to access special discounts</Card.Header>
+        <Card.Header>
+          Issue a Verifiable Credential containing self attested attributes
+        </Card.Header>
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
@@ -192,19 +198,18 @@ class IssueBenefit extends React.Component {
               : "Please authenticate to the required data sources"}
           </Card.Title>
           <Card.Text>
-            Once you have authenticated through the required data sources, click
-            the "Issue" button to generate and receive your VC .
+            Ολοκληρώσατε την αίτηση επιβαιβέωσης των στοιχείων που δηλώσατε. Μόλις, τα στοιχεία επιβεβαιωθούν από τον αρμόδιο φορέα, 
+            όπως εσείς τον δηλώσατε, το αντίστοιχο πιστοποιητικό (Verifiable Credential) θα σταλεί στο κινητό σας. 
           </Card.Text>
           <Container>
-            <Row>
-              <Col>{taxisLoginButton}</Col>
+            {/* <Row>
               <Col>{issueVCBut}</Col>
-            </Row>
+            </Row> */}
           </Container>
         </Card.Body>
-        {/* <Card.Footer className="text-muted">2 days ago</Card.Footer> */}
       </Card>
     );
+
 
     let result = (
       <PairOrCard
@@ -213,10 +218,15 @@ class IssueBenefit extends React.Component {
         baseUrl={this.props.baseUrl}
         uuid={this.props.uuid}
         serverSessionId={this.props.sealSession}
-        card={eidasCard}
+        card={selfCard}
         vcSent={this.props.vcSent}
         sealSession={this.props.sealSession}
-        unauthorized = {this.props.unauthorized}
+        formDataUploaded={
+          this.props.sessionData !== null &&
+          this.props.sessionData !== undefined &&
+          this.props.sessionData.ebill !== undefined
+        }
+        selfForm={<EndorseBillForm onSubmit={this.submit} />}
       />
     );
 
@@ -252,19 +262,21 @@ function mapStateToProps(state) {
     eidasPort: state.appReducer.eidasPort,
     endpoint: state.appReducer.endpoint,
     eidasRedirectUri: state.appReducer.eidasRedirectUri,
-    unauthorized : state.appReducer.unauthorized
   };
 }
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    setDataToSelection: (set) => {
+    setEBillToSession: (userSessionData) => {
+      dispatch(setSessionData(userSessionData));
+    },
+    setSefToSelection: (set) => {
       dispatch(addSetToSelection(set));
     },
     setSteps: (steps) => {
       dispatch(setStepperSteps(steps));
     },
-    setEndPoint: (endpoint) => {
+    setEndPoint: (endpont) => {
       dispatch(setEndpoint(endpoint));
     },
     makeConnectionRequest: (sealSession, baseUrl, isMobile) => {
@@ -282,18 +294,7 @@ const mapDispatchToProps = (dispatch) => {
     setTheSealSession: (sessionId) => {
       dispatch(setSealSession(sessionId));
     },
-    setEidas: (uri, data) => {
-      dispatch(setEidasUriPort(uri, data));
-    },
-
-    setEidasRedirect: (uri) => {
-      dispatch(setEidasRedirectUri(uri));
-    },
-
-    setUnAuthorised : (value) =>{
-      dispatch(setUnauthorized(value));
-    }
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(IssueBenefit);
+export default connect(mapStateToProps, mapDispatchToProps)(IssueEbill);

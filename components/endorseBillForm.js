@@ -71,7 +71,7 @@ const radioButton = ({ input, ...rest }) => (
   </FormControl>
 );
 
-let EBiillForm = (props) => {
+let EndorseBillForm = (props) => {
   const { handleSubmit } = props;
   return (
     <form
@@ -79,24 +79,34 @@ let EBiillForm = (props) => {
       style={{ marginTop: "5rem", marginBottom: "5rem" }}
     >
       <div className="container">
-        <h4 className="row">Electricity Bill Information</h4>
+        <h4 className="row">Πληροφορίες Λογαριασμού Ενέργειας</h4>
+
+        {makeInputElement("name", "Όνομα", null)}
+        {makeInputElement("surname", "Επώνυμο", null)}
+        {makeInputElement("fathersName", "Πατρώνυμο", null)}
+        {makeInputElement("afm", "AFM", null)}
+        {makeInputElement("street", "Οδός", null)}
+        {makeInputElement("number", "Αριθμός", null)}
+        {makeInputElement("municipality", "Δήμος", null)}
+        {makeInputElement("po", "Τ.Κ.", null)}
+
 
         <div className="form-group row">
-          <label className="col-sm-2 col-form-label">Ownership Status</label>
+          <label className="col-sm-2 col-form-label">Ιδιοκτησιακό καθεστώς</label>
           <div>
             <Field name="ownership" component="select">
               <option></option>
-              <option value="owned">Self Owned</option>
-              <option value="rent">Rent</option>
-              <option value="free">Free Residency</option>
-              <option value="guest">Reside as Guest</option>
-              <option value="homeless">Homeless</option>
+              <option value="owned">Ιδιόκτητο</option>
+              <option value="rent">Ενοίκιο</option>
+              <option value="free">Ελεύθερη Κατοικία</option>
+              <option value="guest">Φιλοξενούμενος</option>
+              <option value="homeless">Άστεγος</option>
             </Field>
           </div>
         </div>
 
         <div className="form-group row">
-          <label className="col-sm-2 col-form-label">Supply Type</label>
+          <label className="col-sm-2 col-form-label">Τύπος Παροχής</label>
           <div>
             <Field name="supplyType" component="select">
               <option></option>
@@ -104,13 +114,14 @@ let EBiillForm = (props) => {
               <option value="settlement">Settlement</option>
               <option value="noSupply">noSupply</option>
               <option value="guest">Reside as Guest</option>
-              <option homelessEl="homeless">Homeless</option>
+              <option value="homeless">Homeless</option>
             </Field>
           </div>
         </div>
 
 
-        {/* {makeInputElement("supplyType", "Είδος Παροχής:")} */}
+        {makeInputElement("endorser", "Εmail Αρμόδιου επιβεβαίωσης*:")}
+
         {makeInputElement("meterNumber", "Μετρητής ΔΕΔΔΗΕ*:")}
       </div>
       <button type="submit" className="btn btn-primary">
@@ -120,9 +131,9 @@ let EBiillForm = (props) => {
   );
 };
 
-EBiillForm = reduxForm({
+EndorseBillForm = reduxForm({
   // a unique name for the form
   form: "ebill",
-})(EBiillForm);
+})(EndorseBillForm);
 
-export default EBiillForm;
+export default EndorseBillForm;

@@ -2,10 +2,11 @@ import axios from "axios";
 const { Credentials } = require("uport-credentials");
 const pushTransport = require("uport-transports").transport.push;
 const crypto = require("crypto");
-import { Resolver } from 'did-resolver'
-import { getResolver } from 'ethr-did-resolver'
-import { uuid } from 'uuidv4';
-import {uintToBase36} from 'base36id';
+import { Resolver } from "did-resolver";
+import { getResolver } from "ethr-did-resolver";
+import { uuid } from "uuidv4";
+import { uintToBase36 } from "base36id";
+import {formatCredentialData} from '../helpers/CredentialHelper'
 
 import {
   updateSessionData,
@@ -17,15 +18,16 @@ import { publish } from "../back-services/server-sent-events";
 import { generateCredentialModel } from "../model/credentialModel";
 import { mySigner } from "../back-services/hsmSigner";
 
-
-const providerConfig = { rpcUrl: 'https://mainnet.infura.io/v3/051806cbbf204a4886f2ab400c2c20f9' }
-const resolver = new Resolver(getResolver(providerConfig))
+const providerConfig = {
+  rpcUrl: "https://mainnet.infura.io/v3/051806cbbf204a4886f2ab400c2c20f9",
+};
+const resolver = new Resolver(getResolver(providerConfig));
 
 const credentials = new Credentials({
   appName: "MyIssuer",
   did: "did:ethr:0xd502a2c71e8c90e82500a70683f75de38d57dd9f",
   signer: mySigner,
-  resolver
+  resolver,
 });
 
 function validate(req, res) {
@@ -79,14 +81,25 @@ async function sealIssueVC(req, res) {
   // GET data from SM, parse them in the form of userSessionData, and proceed with the issuance
   let fetchedData = dataStore;
   let vcData = generateCredentialModel(requestedData, fetchedData, vcType);
-  vcData.id = uintToBase36(Math.floor(Math.random() * Math.floor(100000000)))
-  let expirationInMonths = process.env("EXPIRE_MONTHS")?process.env("EXPIRE_MONTHS"):3
-  
+  vcData.id = uintToBase36(Math.floor(Math.random() * Math.floor(100000000)));
+  let expirationInMonths = process.env.EXPIRE_MONTHS
+    ? process.env.EXPIRE_MONTHS
+    : 3;
+
+
+  console.log("sealApiControllers:: will issue credential")
+  console.log(vcData)
+
+
+  let date = new Date();
+  let expirationDate = new Date(date.setMonth(date.getMonth()+expirationInMonths));
+
   credentials
     .createVerification({
       sub: didResp.did,
-      exp: (Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60)*3,
-      claim: vcData,
+      exp:
+        (Math.floor(expirationDate.getTime() / 1000) + 30 * 24 * 60 * 60) ,
+      claim: formatCredentialData(vcData,vcType),
       vc: ["/ipfs/QmWLCkXmpQSQG6kcf88kZbNCRHFbfZzHG8hSbdn7QndQTL"],
     })
     .then((attestation) => {
@@ -114,6 +127,7 @@ async function issueBenefitVC(req, res) {
   console.log(
     `sealApiControllers issueBenefitVC -- seal session ${sealSession}`
   );
+  // console.log(`caseId = ${req.body.caseId}`);
   let dataStore = await getSessionData(sealSession, "dataStore");
   console.log(`sealApiControllers issueBenefitVC -- dataStore::`);
   console.log(dataStore);
@@ -126,8 +140,8 @@ async function issueBenefitVC(req, res) {
     ? process.env.SBCHAIN_URL
     : "http://localhost:8080";
   let nonce = await axios.get(`${sbchainBackend}/rest/nonce`).then((resp) => {
-    console.log(`the data from the axios call is `);
-    console.log(resp.data);
+    // console.log(`the data from the axios call is `);
+    // console.log(resp.data);
     return resp.data;
   });
   // console.log(`the nonce is `)
@@ -150,7 +164,7 @@ async function issueBenefitVC(req, res) {
 
   if (response) {
     console.log(`sealApiControllers.js -- issueBenefitVC:: vcData::`);
-    let vcData = { BENEFIT: { isBeneficiary: true } };
+    let vcData = { BENEFIT: { isBeneficiary: true, caseId: req.body.caseId } };
     console.log(vcData);
     credentials
       .createVerification({
@@ -179,6 +193,67 @@ async function issueBenefitVC(req, res) {
   }
 }
 
+
+
+
+async function issueEndorsedEBill(req, res, didResp, attributes) {
+  
+  console.log(`sealApiControllers issueEndorsedEBill `);
+  
+  attributes.id = uintToBase36(Math.floor(Math.random() * Math.floor(100000000)));
+  let expirationInMonths = process.env.EXPIRE_MONTHS
+    ? process.env.EXPIRE_MONTHS
+    : 3;
+
+  let date = new Date();
+  let expirationDate = new Date(date.setMonth(date.getMonth()+expirationInMonths));
+
+  // console.log("didResp")
+  // console.log(didResp)
+  // console.log("attributes")
+  // console.log(attributes)
+
+
+  let vc = {
+    EBILL:{
+      ebill: attributes
+    }
+  }
+
+
+  console.log("sealApiControllers:: will issue credential")
+  console.log(vc)
+
+  credentials
+    .createVerification({
+      sub: didResp.did,
+      exp:
+        (Math.floor(expirationDate.getTime() / 1000) + 30 * 24 * 60 * 60) ,
+      claim: formatCredentialData(vc,"EBILL"),
+      vc: ["/ipfs/QmWLCkXmpQSQG6kcf88kZbNCRHFbfZzHG8hSbdn7QndQTL"],
+    })
+    .then((attestation) => {
+      let push = pushTransport.send(didResp.pushToken, didResp.boxPub);
+      console.log(
+        `sealApiControllers.js -- issueEndorsedEBill:: pushingn to wallet::`
+      );
+      return push(attestation);
+    })
+    .then((pushed) => {
+      console.log(
+        `sealApiControllers.js -- issueEndorsedEBill:: user should receive claim in any moment`
+      );
+      // publish(JSON.stringify({ uuid: null, status: "sent" }));
+      res.send(200);
+    });
+}
+
+
+
+
+
+
+
 export {
   makeSession,
   update,
@@ -186,4 +261,5 @@ export {
   makeToken,
   sealIssueVC,
   issueBenefitVC,
+  issueEndorsedEBill
 };

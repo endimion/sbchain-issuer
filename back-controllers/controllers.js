@@ -61,62 +61,62 @@ function root(req, res) {
 // accepts the conneciton request
 // if this is in a mobile enviroment an custom url containing the request
 // will be sent. This url will be sent to the OS using by the receiver of it
-function issueVC(req, res) {
-  console.log(`controller.js - issueVC:: `);
-  // console.log(req.body);
-  let requestedData = req.body.data;
-  let vcType = req.body.vcType;
-  let isMobile = req.body.isMobile ? true : false;
-  // let sessionId = req.session.id;
-  let fetchedData = req.session.userData;
-  let matchingUserAttributes = generateCredentialModel(
-    requestedData,
-    fetchedData,
-    vcType
-  );
-  // console.log(
-  //   `controllers.js- issueVC::   the actual values that will be added to the vc are`
-  // );
-  // console.log(matchingUserAttributes);
+// function issueVC(req, res) {
+//   console.log(`controller.js - issueVC:: `);
+//   // console.log(req.body);
+//   let requestedData = req.body.data;
+//   let vcType = req.body.vcType;
+//   let isMobile = req.body.isMobile ? true : false;
+//   // let sessionId = req.session.id;
+//   let fetchedData = req.session.userData;
+//   let matchingUserAttributes = generateCredentialModel(
+//     requestedData,
+//     fetchedData,
+//     vcType
+//   );
+//   // console.log(
+//   //   `controllers.js- issueVC::   the actual values that will be added to the vc are`
+//   // );
+//   // console.log(matchingUserAttributes);
 
-  // create the connection request. This will be used
-  // to push the VC to the user, once this Connection Request has been accepted
-  let uuid = uuidv1();
+//   // create the connection request. This will be used
+//   // to push the VC to the user, once this Connection Request has been accepted
+//   let uuid = uuidv1();
 
-  claimsCache.set(uuid, matchingUserAttributes, 10000);
+//   claimsCache.set(uuid, matchingUserAttributes, 10000);
 
-  let callback = req.baseUrl
-    ? `${req.endpoint}/${req.baseUrl}/requestIssueResponse?uuid=${uuid}`
-    : req.endpoint + "/requestIssueResponse?uuid=" + uuid;
+//   let callback = req.baseUrl
+//     ? `${req.endpoint}/${req.baseUrl}/requestIssueResponse?uuid=${uuid}`
+//     : req.endpoint + "/requestIssueResponse?uuid=" + uuid;
 
-  credentials
-    .createDisclosureRequest({
-      notifications: true,
-      callbackUrl: callback,
-      vc: [
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NTU4NDk2MTAsInN1YiI6ImRpZDpldGhyOjB4ZDUwMmEyYzcxZThjOTBlODI1MDBhNzA2ODNmNzVkZTM4ZDU3ZGQ5ZiIsImNsYWltIjp7Im5hbWUiOiJUaGUgVW5pdmVyc2l0eSBvZiB0aGUgQWVnZWFuIiwicHJvZmlsZUltYWdlIjp7Ii8iOiIvaXBmcy9RbVBiMWFMaUFFN0VQNGNiNXFBQjJBU1l3WHRBQkRhQnFNZWNYWVNUdDVMdTNaIn0sImJhbm5lckltYWdlIjp7Ii8iOiIvaXBmcy9RbVh1SDRFZnJMUXQyZmFmZUdzMUd5SGpxNzFDZEtwOUUzZXNpcTV2WVFETFVNIn0sInVybCI6ImFlZ2Vhbi5nci9jaXR5In0sImlzcyI6ImRpZDpldGhyOjB4ZDUwMmEyYzcxZThjOTBlODI1MDBhNzA2ODNmNzVkZTM4ZDU3ZGQ5ZiJ9.wKKOMRPFla6aGeoWDOGRBluNCsr1TNE6RHz4DLxASv2Brs24JGrzwZ1Qqc6rOPSGXbS2nQe6ydqFAmK71LCnRg",
-      ],
-      act: "none",
-    })
-    .then((requestToken) => {
-      console.log(
-        "controllers.js: ************ Generating Request******************"
-      );
-      const uri = message.paramsToQueryString(
-        message.messageToURI(requestToken),
-        { callback_type: "post" }
-      );
+//   credentials
+//     .createDisclosureRequest({
+//       notifications: true,
+//       callbackUrl: callback,
+//       vc: [
+//         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NTU4NDk2MTAsInN1YiI6ImRpZDpldGhyOjB4ZDUwMmEyYzcxZThjOTBlODI1MDBhNzA2ODNmNzVkZTM4ZDU3ZGQ5ZiIsImNsYWltIjp7Im5hbWUiOiJUaGUgVW5pdmVyc2l0eSBvZiB0aGUgQWVnZWFuIiwicHJvZmlsZUltYWdlIjp7Ii8iOiIvaXBmcy9RbVBiMWFMaUFFN0VQNGNiNXFBQjJBU1l3WHRBQkRhQnFNZWNYWVNUdDVMdTNaIn0sImJhbm5lckltYWdlIjp7Ii8iOiIvaXBmcy9RbVh1SDRFZnJMUXQyZmFmZUdzMUd5SGpxNzFDZEtwOUUzZXNpcTV2WVFETFVNIn0sInVybCI6ImFlZ2Vhbi5nci9jaXR5In0sImlzcyI6ImRpZDpldGhyOjB4ZDUwMmEyYzcxZThjOTBlODI1MDBhNzA2ODNmNzVkZTM4ZDU3ZGQ5ZiJ9.wKKOMRPFla6aGeoWDOGRBluNCsr1TNE6RHz4DLxASv2Brs24JGrzwZ1Qqc6rOPSGXbS2nQe6ydqFAmK71LCnRg",
+//       ],
+//       act: "none",
+//     })
+//     .then((requestToken) => {
+//       console.log(
+//         "controllers.js: ************ Generating Request******************"
+//       );
+//       const uri = message.paramsToQueryString(
+//         message.messageToURI(requestToken),
+//         { callback_type: "post" }
+//       );
 
-      if (isMobile) {
-        // const urlTransport = transport.url.send()
-        // res.send((urlTransport(uri)));
-        res.send({ qr: uri, uuid: uuid });
-      } else {
-        const qr = transports.ui.getImageDataURI(uri);
-        res.send({ qr: qr, uuid: uuid });
-      }
-    });
-}
+//       if (isMobile) {
+//         // const urlTransport = transport.url.send()
+//         // res.send((urlTransport(uri)));
+//         res.send({ qr: uri, uuid: uuid });
+//       } else {
+//         const qr = transports.ui.getImageDataURI(uri);
+//         res.send({ qr: qr, uuid: uuid });
+//       }
+//     });
+// }
 
 // accepts the response form a connection request form the uportwallet
 // based on a session uuid retrieves the user attributes
@@ -312,57 +312,61 @@ async function onlyConnectionResponse(req, res) {
     });
 }
 
-/*
- Accepts:
-   - post param: data containing the user VC requested data
-  Gets from session:
-   - the received user attributes
-  Gets from the cache, using the session (uuid) of the client:
-   - the DID auth response
-  and pushes to the wallet of the user the VC based on the retrieved attributes  
-*/
-function onlyIssueVC(req, res) {
-  const requestedData = req.body.data;
-  const vcType = req.body.vcType;
-  // const sessionId = req.session.id;
-  const uuid = req.query.uuid; //get the sesionId that is picked up from the response uri
-  let fetchedData = req.session.userData;
-  let vcData = generateCredentialModel(requestedData, fetchedData, vcType);
-  console.log(`controllers.js -- onlyIssueVC:: vcData::`);
-  console.log(vcData);
-  // get the user DID authentication details
-  console.log(`did-${uuid}`);
-  const didResp = claimsCache.get(`did-${uuid}`);
-  // Create and push the generated credential to the users wallet
-  credentials
-    .createVerification({
-      sub: didResp.did,
-      exp: Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60,
-      claim: vcData,
-      vc: ["/ipfs/QmNiRNB9RLSFR6SimEzJJ4cUCAk9edtsFj57o95ziZPfo8"], //QmNbicKYQKCsc7GMXSSJMpvJSYgeQ9K2tH15EnbxTydxfQ
-    })
-    .then((attestation) => {
-      let push = pushTransport.send(didResp.pushToken, didResp.boxPub);
-      console.log(`controllers.js -- onlyIssueVC:: pushingn to wallet::`);
-      console.log(attestation);
-      return push(attestation);
-    })
-    .then((pushed) => {
-      console.log(
-        `controllers.js -- onlyIssueVC:: user should receive claim in any moment`
-      );
-      publish(JSON.stringify({ uuid: uuid, status: "sent" }));
-      res.send(200);
-    });
-}
+// /*
+//  Accepts:
+//    - post param: data containing the user VC requested data
+//   Gets from session:
+//    - the received user attributes
+//   Gets from the cache, using the session (uuid) of the client:
+//    - the DID auth response
+//   and pushes to the wallet of the user the VC based on the retrieved attributes  
+// */
+// function onlyIssueVC(req, res) {
+//   const requestedData = req.body.data;
+//   const vcType = req.body.vcType;
+//   // const sessionId = req.session.id;
+//   const uuid = req.query.uuid; //get the sesionId that is picked up from the response uri
+//   let fetchedData = req.session.userData;
+//   let vcData = generateCredentialModel(requestedData, fetchedData, vcType);
+//   console.log(`controllers.js -- onlyIssueVC:: vcData::`);
+//   console.log(vcData);
+//   // get the user DID authentication details
+//   console.log(`did-${uuid}`);
+//   const didResp = claimsCache.get(`did-${uuid}`);
+//   // Create and push the generated credential to the users wallet
+  
+//   console.log("Will issue the vc::")
+//   console.log(vcData)
+  
+//   credentials
+//     .createVerification({
+//       sub: didResp.did,
+//       exp: Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60,
+//       claim: vcData,
+//       vc: ["/ipfs/QmNiRNB9RLSFR6SimEzJJ4cUCAk9edtsFj57o95ziZPfo8"], //QmNbicKYQKCsc7GMXSSJMpvJSYgeQ9K2tH15EnbxTydxfQ
+//     })
+//     .then((attestation) => {
+//       let push = pushTransport.send(didResp.pushToken, didResp.boxPub);
+//       console.log(`controllers.js -- onlyIssueVC:: pushingn to wallet::`);
+//       // console.log(attestation);
+//       return push(attestation);
+//     })
+//     .then((pushed) => {
+//       console.log(
+//         `controllers.js -- onlyIssueVC:: user should receive claim in any moment`
+//       );
+//       publish(JSON.stringify({ uuid: uuid, status: "sent" }));
+//       res.send(200);
+//     });
+// }
 
 export {
-  root,
+  // root,
   credentialsIssuanceConnectionResponse,
-  issueVC,
+  // issueVC,
   cacheUserConnectionRequest,
   makeConnectionRequest,
   onlyConnectionRequest,
   onlyConnectionResponse,
-  onlyIssueVC,
+  // onlyIssueVC,
 };

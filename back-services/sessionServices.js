@@ -8,7 +8,7 @@ function startSession() {
   });
 }
 
-function updateSessionData(sessionId, variableName, variableValue) {
+function updateSessionData(sessionId, variableName, variableValue, ttl=10000) {
   let updateObject = {}
   updateObject[variableName] =variableValue
     
@@ -26,7 +26,7 @@ function updateSessionData(sessionId, variableName, variableValue) {
       if (!data) {
         console.log("sessionServices.js, updateSessionData -->will set data");
         console.log(JSON.stringify(updateObject));
-        memcached.set(sessionId, JSON.stringify(updateObject), 10000, function (
+        memcached.set(sessionId, JSON.stringify(updateObject), ttl, function (
           err
         ) {
           if (err) reject(err);
@@ -56,9 +56,9 @@ function getSessionData(sessionId, variableName) {
     const memcached = getCache();
     memcached.get(sessionId, function (err, data) {
       if(err) reject(err)
-      console.log(
-        `sessionServices.js, getSessionData --- got the data:: ${data}`
-      );
+      // console.log(
+      //   `sessionServices.js, getSessionData --- got the data:: ${data}`
+      // );
       resolve(JSON.parse(data)[variableName]);
     });
   });
