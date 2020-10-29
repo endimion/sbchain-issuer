@@ -250,7 +250,49 @@ async function issueEndorsedEBill(req, res, didResp, attributes) {
 
 
 
+async function issueEndorsedContact(req, res, didResp, attributes) {
+  console.log(`sealApiControllers issueEndorsedContact `);
+  attributes.id = uintToBase36(Math.floor(Math.random() * Math.floor(100000000)));
+  let expirationInMonths = process.env.EXPIRE_MONTHS
+    ? process.env.EXPIRE_MONTHS
+    : 3;
+  let date = new Date();
+  let expirationDate = new Date(date.setMonth(date.getMonth()+expirationInMonths));
 
+  // console.log("didResp")
+  // console.log(didResp)
+  // console.log("attributes")
+  // console.log(attributes)
+
+
+  let vc = {
+    Contact:{
+      contact: attributes
+    }
+  }
+  credentials
+    .createVerification({
+      sub: didResp.did,
+      exp:
+        (Math.floor(expirationDate.getTime() / 1000) + 30 * 24 * 60 * 60) ,
+      claim: formatCredentialData(vc,"CONTACT"),
+      vc: ["/ipfs/QmWLCkXmpQSQG6kcf88kZbNCRHFbfZzHG8hSbdn7QndQTL"],
+    })
+    .then((attestation) => {
+      let push = pushTransport.send(didResp.pushToken, didResp.boxPub);
+      console.log(
+        `sealApiControllers.js -- issueEndorsedEBill:: pushingn to wallet::`
+      );
+      return push(attestation);
+    })
+    .then((pushed) => {
+      console.log(
+        `sealApiControllers.js -- issueEndorsedEBill:: user should receive claim in any moment`
+      );
+      // publish(JSON.stringify({ uuid: null, status: "sent" }));
+      res.send(200);
+    });
+}
 
 
 
@@ -261,5 +303,6 @@ export {
   makeToken,
   sealIssueVC,
   issueBenefitVC,
-  issueEndorsedEBill
+  issueEndorsedEBill,
+  issueEndorsedContact
 };

@@ -35,7 +35,8 @@ import {
 import {
   sealIssueVC,
   issueBenefitVC,
-  issueEndorsedEBill
+  issueEndorsedEBill,
+  issueEndorsedContact
 } from "./back-controllers/sealApiControllers";
 import {
   updateSessionData,
@@ -605,11 +606,11 @@ app.prepare().then(() => {
     return app.render(req, res, "/vc/issue/amka", req.query);
   });
 
-  server.get(["/vc/issue/contact"], async (req, res) => {
-    req.session.endpoint = endpoint;
-    req.session.baseUrl = process.env.BASE_PATH;
-    return app.render(req, res, "/vc/issue/contact", req.query);
-  });
+  // server.get(["/vc/issue/contact"], async (req, res) => {
+  //   req.session.endpoint = endpoint;
+  //   req.session.baseUrl = process.env.BASE_PATH;
+  //   return app.render(req, res, "/vc/issue/contact", req.query);
+  // });
 
   server.get(["/vc/issue/e1"], async (req, res) => {
     req.session.endpoint = endpoint;
@@ -617,11 +618,11 @@ app.prepare().then(() => {
     return app.render(req, res, "/vc/issue/e1", req.query);
   });
 
-  server.get(["/vc/issue/ebill"], async (req, res) => {
-    req.session.endpoint = endpoint;
-    req.session.baseUrl = process.env.BASE_PATH;
-    return app.render(req, res, "/vc/issue/ebill", req.query);
-  });
+  // server.get(["/vc/issue/ebill"], async (req, res) => {
+  //   req.session.endpoint = endpoint;
+  //   req.session.baseUrl = process.env.BASE_PATH;
+  //   return app.render(req, res, "/vc/issue/ebill", req.query);
+  // });
 
   server.get(["/vc/issue/mitro"], async (req, res) => {
     req.session.endpoint = endpoint;
@@ -699,30 +700,7 @@ app.prepare().then(() => {
     console.log("reached::: endorse/ebill/authorization");
     let verificationId = req.query.verification;
     let sessionId = req.query.session;
-
-    // console.log(verificationId)
-    // console.log(sessionId)
-
-    // let uri =
-    //   "https://dilosi.services.gov.gr/api/declarations/" + verificationId;
-
-    // console.log(sessionId)
-
-    // let did = await getSessionData(sessionId, "DID");
     let endorsement = await getSessionData(sessionId, "ebillEndorse");
-    // console.log(endorsement)
-    /*
-    { ebill:
-   { ownership: 'owned',
-     supplyType: 'power',
-     endorser: 'triantafyllou.ni@gmail.com',
-     meterNumber: '12312',
-     source: 'ebill',
-     loa: 'low' },
-  did:
-   '{"did":"did:ethr:0x9a8c4ce463c3161e6da400a1c208e32882fc8fd1","pushToken":"eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE2MDI4MzU0MTgsImV4cCI6MTYzNDM3MTQxOCwiYXVkIjoiZGlkOmV0aHI6MHhkNTAyYTJjNzFlOGM5MGU4MjUwMGE3MDY4M2Y3NWRlMzhkNTdkZDlmIiwidHlwZSI6Im5vdGlmaWNhdGlvbnMiLCJ2YWx1ZSI6ImFybjphd3M6c25zOnVzLXdlc3QtMjoxMTMxOTYyMTY1NTg6ZW5kcG9pbnQvR0NNL3VQb3J0L2NhNjg0NmE4LWQ4YzUtMzlkZi05MzM0LTEwYWFiOWRmNTU2ZSIsImlzcyI6ImRpZDpldGhyOjB4OWE4YzRjZTQ2M2MzMTYxZTZkYTQwMGExYzIwOGUzMjg4MmZjOGZkMSJ9.ZytcSqjkdG_xXvSV7hptnrEgCakGdHFAd5jub8-mAGoFqG1o1_A9h5va7j5IjxliJQPvbQWDhm1QVxlUsp6YygA","boxPub":"lLduVRUixS+zFDm6GQj89cRs13sSUao9LzAdushyInA="}' }
-    */
-
     const reqst = https.get(
       `https://dilosi.services.gov.gr/api/declarations/${verificationId}/`,
       (result) => {
@@ -737,15 +715,8 @@ app.prepare().then(() => {
             console.log(e);
           }
           let result = JSON.parse(body).fields[1].value;
-          // console.log(result);
           let expected = 
-          // `Επαλήθευσα τα στοιχεία\nΙδιοκτησιακό καθεστώς
-          // : ${endorsement.ebill.ownership}\nΠαροχή:
-          //  ${endorsement.ebill.supplyType}\nΜετρητής ΔΕΔΔΗΕ:
-          //   ${endorsement.ebill.meterNumber}\nκαι τα βρήκα ακριβή`;
           `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.ebill.name}\nΕπώνυμο: ${endorsement.ebill.surname}\nΠατρώνυμο: ${endorsement.ebill.fathersName}\nAFM: ${endorsement.ebill.afm}\nΟδός: ${endorsement.ebill.street}\nΑριθμός: ${endorsement.ebill.number}\nΔήμος: ${endorsement.ebill.municipality}\nΤ.Κ.: ${endorsement.ebill.po}\nΙδιοκτησιακό καθεστώς: ${endorsement.ebill.ownership}\nΠαροχή: ${endorsement.ebill.supplyType}\nΜετρητής ΔΕΔΔΗΕ: ${endorsement.ebill.meterNumber}\nκαι τα βρήκα ακριβή`
-          
-          
             //clean up strings
           expected= expected.replace(/\s/g, '').replace(/\n/g,'')
           result = result.replace(/\s/g, '').replace(/\n/g,'')
@@ -787,8 +758,69 @@ app.prepare().then(() => {
       requestContactEndorsement(req, res, app);
     }
   );
+  server.get("/endorse/contact/accept", async (req, res) => {
+    console.log("server.js:: /endorse/ebill/accept");
+    const sessionId = req.query.session;
+    let endorsement = await getSessionData(sessionId, "contactEndorse");
+    let did = await getSessionData(sessionId, "DID");
+    // console.log("server.js:: /endorse/contact/accept the endorsement is");
+    // console.log(endorsement);
+    // console.log("server.js:: /endorse/contact/accept the DID is");
+    // console.log(did);
+    req.session.endorsement = endorsement;
+    req.session.sessionId = sessionId;
+    return app.render(req, res, "/endorse/issue/authorize-contact", req.query);
+  });
 
+  server.get("/endorse/contact/authorization", async (req, res) => {
+    console.log("reached::: endorse/contact/authorization");
+    let verificationId = req.query.verification;
+    let sessionId = req.query.session;
+    let endorsement = await getSessionData(sessionId, "contactEndorse");
+    const reqst = https.get(
+      `https://dilosi.services.gov.gr/api/declarations/${verificationId}/`,
+      (result) => {
+        let body = [];
+        result.on("data", (d) => {
+          body.push(d);
+        });
+        result.on("end", function () {
+          try {
+            body = Buffer.concat(body).toString();
+          } catch (e) {
+            console.log(e);
+          }
+          let result = JSON.parse(body).fields[1].value;
+          let expected = 
+          `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.contact.name}\nΕπώνυμο: ${endorsement.contact.surname}\nΔιεύθυνση email: ${endorsement.contact.email}\nΑριθμός Σταθερού Τηλεφώνου: ${endorsement.contact.landline}\nΑριθμός Κινητού Τηλεφώνου: ${endorsement.contact.mobile}\nΑριθμός Τραπεζικού Λογαριασμού (IBAN): ${endorsement.contact.iban}\nκαι τα βρήκα ακριβή`  
+          
+          //clean up strings
+          expected= expected.replace(/\s/g, '').replace(/\n/g,'')
+          result = result.replace(/\s/g, '').replace(/\n/g,'')
+          //
+          if (result === expected) {
+            console.log(`server.js:: endorsement is a success`);
+            endorsement.contact.endorsement=verificationId
+            issueEndorsedContact(req,res,JSON.parse(endorsement.did),endorsement.contact)
+            // res.sendStatus(200);
+          } else {
+            console.log(`expected ${expected}`);
+            console.log(`but found `);
+            console.log(`${result}`);
+            res.sendStatus(403);
+          }
 
+          // resolve(JSON.parse(body));
+        });
+      }
+    );
+    reqst.on("error", (error) => {
+      console.error(error);
+      // reject(error);
+    });
+
+    reqst.end();
+  });
 
   /**
    * END OF endorsement controllers

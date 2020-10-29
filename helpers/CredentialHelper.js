@@ -6,6 +6,16 @@ function formatCredentialData(vcData, vcType) {
   if (vcType.toUpperCase() === "EBILL") {
     return formatEbillClaim(vcData);
   }
+
+  if(vcType.toUpperCase() === "CONTACT"){
+    return formatContactClaim(vcData)
+  }
+
+  if(vcType.toUpperCase() === "E1"){
+    return formatFinancialIDClaim(vcData)
+  }
+
+
 }
 
 function formatTaxisClaim(vcData) {
@@ -81,6 +91,62 @@ function formatEbillClaim(vcData) {
     };
   }
   
+  // { Contact:
+  //   { contact:
+  //      { ownership: 'owned',
+  //        supplyType: 'power',
+  //        endorser: 'triantafyllou.ni@gmail.com',
+  //        meterNumber: '12312',
+  //        source: 'ebill',
+  //        loa: 'low',
+  //        endorsement: 'pKORbUhKRrm0n7yhWD3f8A',
+  //        id: '1CEZ2K' } } }
+  function formatContactClaim(vcData) {
+    return {
+      CONTACT_ME: {
+        claims: {
+          name: vcData.Contact.contact.name,
+          surname: vcData.Contact.contact.surname,
+          email: vcData.Contact.contact.email,
+          landline: vcData.Contact.contact.landline,
+          landline: vcData.Contact.contact.landline,
+          mobile: vcData.Contact.contact.mobile,
+          iban: vcData.Contact.contact.iban,
+                    
+        },
+        metadata: {
+          source: "endorsed",
+          endorser: vcData.Contact.contact.endorser,
+          verification: vcData.Contact.contact.endorsement,
+          id: vcData.Contact.contact.id,
+        },
+      },
+    };
+  }
+
+
+  function formatFinancialIDClaim(vcData) {
+    return {
+      PERSONAL_FINANCIAL_STATUS : {
+        claims: {
+          name: vcData.Contact.contact.name,
+          surname: vcData.Contact.contact.surname,
+          email: vcData.Contact.contact.email,
+          landline: vcData.Contact.contact.landline,
+          landline: vcData.Contact.contact.landline,
+          mobile: vcData.Contact.contact.mobile,
+          iban: vcData.Contact.contact.iban,
+                    
+        },
+        metadata: {
+          source: "endorsed",
+          endorser: vcData.Contact.contact.endorser,
+          verification: vcData.Contact.contact.endorsement,
+          id: vcData.Contact.contact.id,
+        },
+      },
+    };
+  }
 
 
 
