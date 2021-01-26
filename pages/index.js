@@ -84,7 +84,7 @@ class Index extends React.Component {
     const { dispatch, sessionData } = this.props;
   }
 
-  componentWillUnmount() {}
+  componentWillUnmount() { }
 
   clickMe() {
     this.dispatch(loginClicked());
@@ -100,96 +100,163 @@ class Index extends React.Component {
   render() {
     let cards = [
       <Card style={{ minHeight: "47rem" }}>
-        <Card.Header style={{minHeight:"6rem"}}>
-          Issue a VC containing Personal Information retrieved from the TAXIS
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Δημιουργείστε μια ηλεκτρονική ταυτότητα
+          με τις πληροφορίες σας από το TAXIS
         </Card.Header>
         <Card.Img
-          style={{ height: "10rem" ,padding:"1rem"}}
+          style={{ height: "10rem", padding: "1rem" }}
           variant="top"
           src={getPath("aade.jpg")}
         />
         <Card.Body>
-          <Card.Title style={{height:"5rem"}}>
-            Click Next to generate a Verifiable Credential from the TAXIS
-            registery.
+          <Card.Title style={{ height: "5rem" }}>
+            Πατήστε το κουμπί "Επόμενο" για να συνεχίσετε
           </Card.Title>
-          <Card.Subtitle className="mb-2 text-muted">
-            Available for all Greek citizens
-          </Card.Subtitle>
-          <Card.Text style={{height:"11rem"}}>
-            You will be required  authenticate over the TAXIS network
+          {/* <Card.Subtitle className="mb-2 text-muted"> */}
+          {/* Available for all Greek citizens
+          </Card.Subtitle> */}
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να αυθεντικοποιηθείτε στο TAXIS,
             <br />
-            This service will next issue a Verifiable Credential containing the
-            retrieved data.
+            Η υπηρεσία θα σας δημιουργήσει ένα πιστοποιητικό με τα στοιχεία σας από το TAXIS
           </Card.Text>
           <Card.Link href="#">
             <Link href={`${this.props.baseUrl}vc/issue/taxis`}>
-              <Button variant="primary">Next</Button>
+              <Button variant="primary">Επόμενο</Button>
             </Link>
           </Card.Link>
         </Card.Body>
       </Card>,
 
       <Card style={{ minHeight: "47rem" }}>
-        <Card.Header style={{minHeight:"6rem"}}>
-          Issue a VC containing Personal Information retrieved from the A.M.K.A
-          registery
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Δημιουργείστε μια ηλεκτρονική ταυτότητα
+          με τις πληροφορίες σας από το Μητρώο Πολιτών
         </Card.Header>
         <Card.Img
-          style={{ height: "10rem" ,padding:"1rem"}}
-          variant="top"
-          src={getPath("amka.jpeg")}
-        />
-        <Card.Body>
-          <Card.Title style={{height:"5rem"}}>
-            Click Next to generate a Verifiable Credential from the AMKA
-            registery.
-          </Card.Title>
-          <Card.Subtitle className="mb-2 text-muted">
-            Available for all Greek citizens
-          </Card.Subtitle>
-          <Card.Text style={{height:"11rem"}}>
-            You will be required provide personal information to query the
-            A.M.K.A registery
-            <br />
-            This service will next issue a Verifiable Credential containing the
-            retrieved data.
-          </Card.Text>
-          <Card.Link href="#">
-            <Link href={`${this.props.baseUrl}vc/issue/amka`}>
-              <Button variant="primary">Next</Button>
-            </Link>
-          </Card.Link>
-        </Card.Body>
-      </Card>,
-
-      <Card style={{ minHeight: "47rem" }}>
-        <Card.Header style={{minHeight:"6rem"}}>
-          Issue a Mitro-Politon based Verifiable Credential
-        </Card.Header>
-        <Card.Img
-          style={{ height: "10rem" ,padding:"1rem"}}
+          style={{ height: "10rem", padding: "1rem" }}
           variant="top"
           src={getPath("mitro.png")}
         />
         <Card.Body>
-          <Card.Title style={{height:"5rem"}}>
-            Click Next to generate Verifiable Credential from the data of
-            "Mitro-Politon"
+          <Card.Title style={{ height: "5rem" }}>
+            Πατήστε το κουμπί "Επόμενο" για να συνεχίσετε
           </Card.Title>
-          <Card.Subtitle className="mb-2 text-muted">
-            Available for all Greek Citizens
-          </Card.Subtitle>
-          <Card.Text style={{height:"11rem"}}>
-            You will be required provide personal information to query the
-            Mitro-Polition
+          {/* <Card.Subtitle className="mb-2 text-muted">
+            Available for all Greek citizens
+          </Card.Subtitle> */}
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να επιβεβαιώσετε τα προσωπικά σας στοιχεία και το ΑΜΚΑ σας
             <br />
-            This service will next issue a Verifiable Credential containing the
-            retrieved data.
+            Η υπηρεσία θα σας δημιουργήσει ένα πιστοποιητικό με τα στοιχεία σας από το Μητρώο Πολιτών
           </Card.Text>
           <Card.Link href="#">
             <Link href={`${this.props.baseUrl}vc/issue/mitro`}>
-              <Button variant="primary">Next</Button>
+              <Button variant="primary">Επόμενο</Button>
+            </Link>
+          </Card.Link>
+        </Card.Body>
+      </Card>,
+
+
+      <Card style={{ minHeight: "47rem" }}>
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Αιτηθείτε μια ηλεκτρονική Ταυτότητα
+          με τις πληροφορίες του λογαριασμού ηλεκτροδότησης σας
+        </Card.Header>
+        <Card.Img
+          style={{ height: "10rem", padding: "1rem" }}
+          variant="top"
+          src={getPath("dei-logo.jpg")}
+        />
+        <Card.Body>
+          <Card.Title style={{ height: "5rem" }}>
+          Πατήστε το κουμπί "Επόμενο" για συνεχίσετε.
+          </Card.Title>
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να εισάγετε τα προσωπικά σας στοιχεία, και να δηλώσετε το άτομο που θα τα επαληθεύσει
+              <br />
+          </Card.Text>
+          <Card.Link href="#">
+            <Link href={`${this.props.baseUrl}endorse/issue/ebill`}>
+              <Button variant="primary">Επόμενο</Button>
+            </Link>
+          </Card.Link>
+        </Card.Body>
+      </Card>,
+
+      <Card style={{ minHeight: "47rem" }}>
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Δημιουργείστε  μια ηλεκτρονική Ταυτότητα
+          με τα Οικονομικά σας Στοιχεία
+      </Card.Header>
+        <Card.Img
+          style={{ height: "10rem", padding: "1rem" }}
+          variant="top"
+          src={getPath("aade.jpg")}
+        />
+        <Card.Body>
+          <Card.Title style={{ height: "5rem" }}>
+          Πατήστε το κουμπί "Επόμενο" για συνεχίσετε.
+        </Card.Title>
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να εισάγετε τα προσωπικά σας στοιχεία
+        </Card.Text>
+          <Card.Link href="#">
+            <Link href={`${this.props.baseUrl}vc/issue/e1`}>
+              <Button variant="primary">Επόμενο</Button>
+            </Link>
+          </Card.Link>
+        </Card.Body>
+      </Card>,
+
+      <Card style={{ minHeight: "47rem" }}>
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Αιτηθείτε τη δημιουργία  μιας ηλεκτρονικής Ταυτότητας
+          με τα Στοιχεία Επικοινωνίας σας
+        </Card.Header>
+        <Card.Img
+          style={{ height: "10rem", padding: "1rem" }}
+          variant="top"
+          src={getPath("contact.png")}
+        />
+        <Card.Body>
+          <Card.Title style={{ height: "5rem" }}>
+          Πατήστε το κουμπί "Επόμενο" για συνεχίσετε.
+          </Card.Title>
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να εισάγετε τα προσωπικά σας στοιχεία, καθώς και να δηλώσετε το πρόσωπο που θα επιβαιβέωσει την ορθότητα τους.
+          </Card.Text>
+          <Card.Link href="#">
+            <Link href={`${this.props.baseUrl}endorse/issue/contact`}>
+              <Button variant="primary">Επόμενο</Button>
+            </Link>
+          </Card.Link>
+        </Card.Body>
+      </Card>,
+
+
+      <Card style={{ minHeight: "47rem" }}>
+        <Card.Header style={{ minHeight: "6rem" }}>
+          Δημιουργείστε μιας ηλεκτρονικής Ταυτότητας
+          με τα πρσωπικά σας Στοιχεία Διαβίωσης σας
+      </Card.Header>
+        <Card.Img
+          style={{ height: "10rem", padding: "1rem" }}
+          variant="top"
+          src={getPath("images.png")}
+        />
+        <Card.Body>
+          <Card.Title style={{ height: "5rem" }}>
+            Πατήστε το κουμπί "Επόμενο" για συνεχίσετε.
+        </Card.Title>
+          <Card.Text style={{ height: "11rem" }}>
+            Για να συνεχίσετε θα χρειαστεί να εισάγετε τα προσωπικά σας στοιχεία.
+        </Card.Text>
+          <Card.Link href="#">
+            <Link href={`${this.props.baseUrl}vc/issue/self`}>
+              <Button variant="primary">Επόμενο</Button>
             </Link>
           </Card.Link>
         </Card.Body>

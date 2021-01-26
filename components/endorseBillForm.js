@@ -125,7 +125,7 @@ let EndorseBillForm = (props) => {
         {makeInputElement("meterNumber", "Μετρητής ΔΕΔΔΗΕ*:")}
       </div>
       <button type="submit" className="btn btn-primary">
-        Submit
+        Υποβολή
       </button>
     </form>
   );

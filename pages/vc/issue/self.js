@@ -135,10 +135,10 @@ class IssueAmka extends React.Component {
     
     console.log(values);
     // values.loa = "low";
-    if(values.employed){
-      values.employmentStatus="employed"
-    }else{
+    if(values.employed === 'false'){
       values.employmentStatus="unemployed"
+    }else{
+      values.employmentStatus="employed"
     }
     values.source = "self";
     let toSelect = [values];
@@ -166,9 +166,9 @@ class IssueAmka extends React.Component {
 
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
-      { title: "Pair your wallet" },
-      { title: "Declare Self Attested Attributes" },
-      { title: "Request Issuance" },
+      { title: "Συνδέστε το κινητό σας" },
+      { title: 'Συμπληρώστε τα πεδία' },
+      { title: "Έκδοση Ηλεκτρονικής Ταυτότητας" },
     ];
 
 
@@ -209,17 +209,17 @@ class IssueAmka extends React.Component {
     let selfCard = (
       <Card className="text-center" style={{ marginTop: "2rem" }}>
         <Card.Header>
-          Issue a Verifiable Credential containing self attested attributes
+        Δημιουργείστε μια ηλεκτρονική ταυτότητα
+            με τις πληροφορίες που παρέχετε
         </Card.Header>
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
-              ? "Credentials Issuance is ready!"
-              : "Please authenticate to the required data sources"}
+               ? "Η έκδοση της Ηλεκτρονικής σας Ταυτότητας είναι έτοιμη!"
+               : "Παρακαλώ Συμπληρώστε τη κάτωθι δήλωση"}
           </Card.Title>
           <Card.Text>
-           You have completed the self attestation of the required attributes, click
-            the "Issue" button to generate and receive your VC .
+          Μολις ολοκληρώσετε την δήλωση των κάτωθι πεδίων, πατήστε το κουμπί "Έκδοση" για να δημιουργήσετε την ταυτοτητά σας.
           </Card.Text>
           <Container>
             <Row>

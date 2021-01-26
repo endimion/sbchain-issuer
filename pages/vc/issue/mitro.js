@@ -124,9 +124,9 @@ class IssueAmka extends React.Component {
   render() {
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
-      { title: "Pair your wallet" },
-      { title: 'Authenticate over "Mitro Politon"' },
-      { title: "Request Issuance" },
+      { title: "Συνδέστε το κινητό σας" },
+      { title: 'Επιβεβαιώστε το ΑΜΚΑ σας' },
+      { title: "Έκδοση Ηλεκτρονικής Ταυτότητας" },
     ];
 
 
@@ -152,7 +152,7 @@ class IssueAmka extends React.Component {
     }
 
     let mitroLoginButton = !this.hasRequiredAttributes ? (
-      <Button onClick={this.proceedWithAmkaAuth}>Mitro Politon</Button>
+      <Button onClick={this.proceedWithAmkaAuth}>Μητρώο Πολιτών</Button>
     ) : (
       <Button variant="primary" disabled>
         Mitro Politon
@@ -171,16 +171,17 @@ class IssueAmka extends React.Component {
 
     let eidasCard = (
       <Card className="text-center" style={{ marginTop: "2rem" }}>
-        <Card.Header>Issue a Verifiable Credential containing attributes from the registery Mitro Politon</Card.Header>
+        <Card.Header>Δημιουργείστε μια ηλεκτρονική ταυτότητα
+            με τις πληροφορίες σας από το  Μητρώο Πολιτών</Card.Header>
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
-              ? "Credentials Issuance is ready!"
-              : "Please authenticate to the required data sources"}
+              ? "Η έκδοση της Ηλεκτρονικής σας Ταυτότητας είναι έτοιμη!"
+              : "Παρακαλώ ταυτοποιηθείτε στις απαιτούμενες υπηρεσίες"}
           </Card.Title>
           <Card.Text>
-            Once you have authenticated through the required data sources, click
-            the "Issue" button to generate and receive your VC .
+              Μολις ταυτοποιηθείτε στο  Μητρώο 
+              Πολιτών, πατήστε το κουμπί "Έκδοση" για να δημιουργήσετε την ταυτοτητά σας.
           </Card.Text>
           <Container>
             <Row>

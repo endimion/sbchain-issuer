@@ -85,7 +85,7 @@ let EndorsedEBillForm = (props) => {
         {makeInputElement("verification", "Αριθμός Υπεύθυνης Δήλωσης:")}
       </div>
       <button type="submit" className="btn btn-primary">
-        Submit
+        Υποβολή
       </button>
     </form>
   );

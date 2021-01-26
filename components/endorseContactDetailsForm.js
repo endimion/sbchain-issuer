@@ -91,7 +91,7 @@ let EndorseContactForm = (props) => {
 
       </div>
       <button type="submit" className="btn btn-primary">
-        Submit
+        Υποβολή
       </button>
     </form>
   );

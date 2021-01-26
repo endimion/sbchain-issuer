@@ -44,27 +44,27 @@ const radioButton = ({ input, ...rest }) => (
       <FormControlLabel
         value="hospitalized"
         control={<Radio />}
-        label="Resident at health care institution"
+        label="Φιλοξενείστε ή Περιθάλπεστε σε μονάδα κλειστής φροντίδας ή σε στέγη υποστηριζόμενης διαβίωσης;"
       />
       <FormControlLabel
         value="hospitalizedSpecific"
         control={<Radio />}
-        label="Resident at mental health care institution"
+        label="Φιλοξενείστε σε μονάδα ψυχοκοινωνικής αποκατάστασης;"
       />
       <FormControlLabel
         value="monk"
         control={<Radio />}
-        label="Resident at a monastery"
+        label="Φιλοξενείστε σε Μονές;"
       />
       <FormControlLabel
         value="luxury"
         control={<Radio />}
-        label="Airplane, yacht owner"
+        label="Εμπίπτετε στα κριτήρια Πολυτελή Διαβίωσης;"
       />
        <FormControlLabel
         value="none"
         control={<Radio />}
-        label="None of the above"
+        label="Κανένα από τα παραπάνω;"
       />
     </RadioGroup>
   </FormControl>
@@ -79,28 +79,28 @@ let SelfForm = (props) => {
     >
       <div className="container">
         <h4 className="row">
-          Employment Details
+          Στοιχεία Επαγγελματικής Κατάστασης
         </h4>
 
         <div className="row">
-          <Field name="employed" component={renderCheckbox} label="Employed" />
+          <Field name="employed" component={renderCheckbox} label="Εργάζεστε;" />
         </div>
         {makeInputElement(
           "oaedid",
-          "Public Employment Service identification number"
+          "Αριθμός ΟΑΕΔ"
         )}
         {makeInputElement(
           "oaedDate",
-          "Public Employment Service  date of registration"
+          "Ημερομηνία Εγγραφής στον ΟΑΕΔ (π.χ. 01/01/2020)"
         )}
 
         <div className="row">
-          <Field name="participateFead" component={renderCheckbox} label="Participate in the FEAD program" />
+          <Field name="participateFead" component={renderCheckbox} label="Συμμετοχή στο ΤΕΒΑ;" />
         </div>
         
         {makeInputElement(
           "feadProvider",
-          "FEAD provider"
+          "Πάροχος ΤΕΒΑ"
         )}
 
 
@@ -109,25 +109,25 @@ let SelfForm = (props) => {
 
       <div className="container">
         <h4 className="row">
-          Personal Details
+          Προσωπικά στοιχεία
         </h4>
         <Field name="personal" component={radioButton}>
           <Radio
             value="hospitalized"
-            label="Resident at health care institution"
+            label="Φιλοξενείστε ή Περιθάλπεστε σε μονάδα κλειστής φροντίδας ή σε στέγη υποστηριζόμενης διαβίωσης;"
           />
           <Radio
             value="hospitalizedSpecific"
-            label="Resident at mental health care institution"
+            label="Φιλοξενείστε σε μονάδα ψυχοκοινωνικής αποκατάστασης;"
           />
-          <Radio value="monk" label="Resident at Monastery" />
-          <Radio value="luxury" label="Airplane, yacht owner" />
-          <Radio value="none" label="None of the above" />
+          <Radio value="monk" label="Φιλοξενείστε σε Μονές;" />
+          <Radio value="luxury" label="Πολυτελή Διαβίωση;" />
+          <Radio value="none" label="Κανένα από τα παραπάνω;" />
         </Field>
       </div>
 
       <button type="submit" className="btn btn-primary">
-        Submit
+        Υποβολή
       </button>
     </form>
   );

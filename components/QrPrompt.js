@@ -21,7 +21,7 @@ const QrPrompt = props => {
             <Row>
               <Col>
                 <p id="uPortMessage">
-                  Scan the QR code with your uPort Wallet to access the service
+                  Σκανάρετε την ακόλουθη εικόνα (QR code) με την εφαρμογή "uPort Wallet" το κινητού σας, για να αποκτήσετε πρόσβαση στην υπηρεσία
                 </p>
                 <style jsx>
                   {`
@@ -38,8 +38,7 @@ const QrPrompt = props => {
               </Col>
             </Row>
             <Row>
-              Do not have the uPort app yet? Download it form your prefered app
-              store
+              Δεν έχετε τη εφαρμογή "uPort Wallet"? Κατεβάστε τη δωρεάν από το αντίστοιχο app store
             </Row>
             <Row>
               <Col>
@@ -48,7 +47,7 @@ const QrPrompt = props => {
                   target="_blank"
                   className="w-inline-block"
                 >
-                  <img className="img-fluid" src={`${props.baseUrl}app-store.png`} />
+                  <img className="img-fluid" src={`/app-store.png`} />
                 </a>
               </Col>
               <Col>
@@ -57,7 +56,7 @@ const QrPrompt = props => {
                   target="_blank"
                   className="w-inline-block"
                 >
-                  <img className="img-fluid" src={`${props.baseUrl}play-store.png`} />
+                  <img className="img-fluid" src={`/play-store.png`} />
                 </a>
               </Col>
             </Row>

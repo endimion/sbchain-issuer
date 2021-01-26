@@ -48,5 +48,17 @@ async function sendEndorsementRequestMail(recipientEmail, approveLink, rejectLin
 }
 
 
+async function sendEmail(recipientEmail, body ) {
+  // send mail with defined transport object
+  await transporter.sendMail({
+    from: 'smartclass@aegean.gr', // sender address
+    to: recipientEmail, // list of receivers
+    subject: "Verifiable Credential Endorsement Request ✔", // Subject line
+    text: "This a credential Endorsement request ", // plain text body
+    html: body
+    });
+}
 
-module.exports = { sendRegisrationMail, sendEndorsementRequestMail };
+
+
+module.exports = { sendRegisrationMail, sendEndorsementRequestMail, sendEmail };

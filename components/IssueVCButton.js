@@ -36,7 +36,7 @@ class IssueVCButton extends React.Component {
         disabled={!this.props.hasRequiredAttributes}
         onClick={this.click}
       >
-        Issue Verifiable Claim
+        Έκδοση
       </Button>
       // </Link>
     );

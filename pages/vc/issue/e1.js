@@ -89,6 +89,7 @@ class IssueE1 extends React.Component {
     //returned value here is getting mered with the mapstatetoprops
     // mapstatetoprops overrides these values if they match
     return {
+      noUserError:  req.session.error,
       sessionData: userSessionData,
       qrData: reduxStore.getState().qrData,
       vcSent: false,
@@ -138,9 +139,9 @@ class IssueE1 extends React.Component {
   render() {
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
-      { title: "Pair your wallet" },
-      { title: 'Authenticate over "AADE"' },
-      { title: "Request Issuance" },
+      { title: "Συνδέστε το κινητό σας" },
+      { title: 'Ανακτήστε τα δεδομένα σας' },
+      { title: "Έκδοση Ηλεκτρονικής Ταυτότητας" },
     ];
 
 
@@ -165,7 +166,7 @@ class IssueE1 extends React.Component {
     }
 
     let aadeLoginButton = !this.hasRequiredAttributes ? (
-      <Button onClick={this.proceedWithTaxisAuth}>AADE login</Button>
+      <Button onClick={this.proceedWithTaxisAuth}>Σύνδεση μέσω ΑΑΔΕ</Button>
     ) : (
       <Button variant="primary" disabled>
         AADE login
@@ -191,12 +192,11 @@ class IssueE1 extends React.Component {
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
-              ? "Credentials Issuance is ready!"
-              : "Please authenticate to the required data sources"}
+              ? "Η έκδοση της Ηλεκτρονικής σας Ταυτότητας είναι έτοιμη!"
+              : "Παρακαλώ ταυτοποιηθείτε στις απαιτούμενες πηγές"}
           </Card.Title>
           <Card.Text>
-            Once you have authenticated through the required data sources, click
-            the "Issue" button to generate and receive your VC .
+          Μολις ταυτοποιηθείτε με τις εξουσιοδοτημένες πηγές, πατήστε το κουμπί "Έκδοση" για να δημιουργήσετε την ταυτοτητά σας.
           </Card.Text>
           <Container>
             <Row>
@@ -220,7 +220,7 @@ class IssueE1 extends React.Component {
         card={eidasCard}
         vcSent={this.props.vcSent}
         sealSession={this.props.sealSession}
-        selfForm={<AadeForm onSubmit={this.submit} />}
+        selfForm={<AadeForm onSubmit={this.submit} userError={this.props.noUserError}/>}
         formDataUploaded={this.hasRequiredAttributes}
       />
     );

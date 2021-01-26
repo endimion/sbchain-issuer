@@ -38,11 +38,9 @@ const PairOrCard = (props) => {
           }}
         />
         <p>
-          The verifiable credential has been sent to your mobile phone
-          succesfully!
+          Η ταυτότητα στάλθηκε στο κινητό σας με επιτυχία!
           <br />
-          You should receive a notification, prompting you to store it, very
-          soon. Please check your wallet notifications
+          Σε μικρό χρονικό διάστημα θα λάβετε ειδοποίηση στην εφαρμογή uPort, ώστε να την αποδεχτείτε
         </p>
       </div>
     </div>
@@ -65,9 +63,9 @@ const PairOrCard = (props) => {
         <QrPrompt
           qrData={props.qrData}
           message={
-            "Social Solidarity Income Issuer Service is requesting to connect your uPort wallet:"
+            "Η υπηρεσία SBChain VC Issuer, χρειάζεται τα ακόλουθα στοιχεία από το κινητό σας:"
           }
-          permissions={["Push Notifications"]}
+          permissions={["Ενεργοποίηση Ειδοποιήσεων Push"]}
           baseUrl={props.baseUrl}
         />
         <SSE
@@ -86,7 +84,7 @@ const PairOrCard = (props) => {
 
       return props.card;
     } else {
-      return <div>Generating Wallet Pairing Request...</div>;
+      return <div>Δημιουργία αιτήματος σύνδεσης...</div>;
     }
   }
 };

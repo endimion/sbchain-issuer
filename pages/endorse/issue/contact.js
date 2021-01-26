@@ -140,8 +140,8 @@ class IssueContact extends React.Component {
 
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
-      { title: "Pair your wallet" },
-      { title: "Declare Self Attested Attributes" },
+      { title: "Συνδέστε το κινητό σας" },
+      { title: 'Συμπληρώστε τα πεδία' },
       // { title: "Request Endorsement" },
     ];
 
@@ -184,13 +184,13 @@ class IssueContact extends React.Component {
     let selfCard = (
       <Card className="text-center" style={{ marginTop: "2rem" }}>
         <Card.Header>
-          Issue a Verifiable Credential containing self attested attributes
+        Δημιουργείστε μια ηλεκτρονική ταυτότητα, με τα κάτωθι στοιχεία
         </Card.Header>
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
-              ? "Credentials Issuance is ready!"
-              : "Please authenticate to the required data sources"}
+             ? "Η Έκδοση της Ηλεκτρονικής σας Ταυτότητας είναι έτοιμη!"
+             : "Η δήλωση των στοιχείων ολοκληρώθηκε με επιτυχία!"}
           </Card.Title>
           <Card.Text>
             Ολοκληρώσατε την αίτηση επιβαιβέωσης των στοιχείων που δηλώσατε. Μόλις, τα στοιχεία επιβεβαιωθούν από τον αρμόδιο φορέα, 

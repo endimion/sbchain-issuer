@@ -71,32 +71,34 @@ const radioButton = ({ input, ...rest }) => (
 );
 
 let AadeForm = (props) => {
-  const { handleSubmit } = props;
-  return (
+  const {handleSubmit,userError }= props
+  console.log("there is an error " + userError)
+  
+  return userError? (<div style={{ marginTop: "2rem" }}>  {userError} </div>) :(
     <form
       onSubmit={handleSubmit}
       style={{ marginTop: "5rem", marginBottom: "5rem" }}
     >
       <div className="container">
         <h4 className="row">
-          Personal Details
+          Προσωπικά Στοιχεία
         </h4>
         
         {makeInputElement(
           "name",
-          "Name:"
+          "Όνομα:"
         )}
         {makeInputElement(
           "surname",
-          "Surname:"
+          "Επώνυμο:"
         )}
         {makeInputElement(
           "dateOfBirth",
-          "Date Of Birth (dd/mm/yy):"
+          "Ημερομηνία Γέννησης (π.χ. 01/01/77):"
         )}
       </div>
       <button type="submit" className="btn btn-primary">
-        Submit
+        Υποβολή
       </button>
     </form>
   );

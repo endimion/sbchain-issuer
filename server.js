@@ -37,7 +37,7 @@ import {
   issueBenefitVC,
   issueEndorsedEBill,
   issueEndorsedContact
-} from "./back-controllers/sealApiControllers";
+} from "./back-controllers/vcIssueControllers";
 import {
   updateSessionData,
   getSessionData,
@@ -340,7 +340,7 @@ app.prepare().then(() => {
         // surname: idToken.surname,
         gender: idToken.gender,
         nationality: idToken.mainnationality,
-        singleParent: idToken.spousemarriagerank && idToken.parenthood? "false" : idToken.parenthood?"true":"false",
+        singleParent: idToken.spousemarriagerank && idToken.parenthood ? "false" : idToken.parenthood ? "true" : "false",
         maritalStatus: idToken.marriagerank ? "married" : "divorced",
         motherLatin: idToken.motherEn,
         fatherLatin: idToken.fatherEn,
@@ -351,6 +351,11 @@ app.prepare().then(() => {
         parenthood: idToken.parenthood,
         protectedMembers: idToken.protectedMembers,
         custody: idToken.marriagerank ? "true" : idToken.custody,
+        fatherName: idToken.fatherName,
+        children: idToken.children,
+        surname:idToken.surname,
+        name:idToken.firstName,
+        motherName: idToken.motherName,
         loa: "low",
         source: "MITRO",
       };
@@ -488,23 +493,31 @@ app.prepare().then(() => {
             // console.log("the data is ")
             // console.log(data);
             let e1Details = JSON.parse(data).users;
-            e1Details.source = "E1";
-            e1Details.loa = "low";
-            console.log("E1 DETAILS IS::");
-            console.log(e1Details);
-            let dataStore = await getSessionData(sessionId, "dataStore");
-            if (!dataStore) {
-              dataStore = {};
+            if (e1Details) {
+              req.session.error = null
+              e1Details.source = "E1";
+              e1Details.loa = "low";
+              console.log("E1 DETAILS IS::");
+              console.log(e1Details);
+              let dataStore = await getSessionData(sessionId, "dataStore");
+              if (!dataStore) {
+                dataStore = {};
+              }
+              dataStore["E1"] = e1Details;
+              await updateSessionData(sessionId, "dataStore", dataStore);
+              dataStore = await getSessionData(sessionId, "dataStore");
+              if (req.session.userData) {
+                req.session.userData.e1 = e1Details;
+              } else {
+                req.session.userData = {};
+                req.session.userData.e1 = e1Details;
+              }
+
+            }else{
+              console.log('will set error message')
+              req.session.error = `No data found for ${name} ${surname} ${dateOfBirth}`
             }
-            dataStore["E1"] = e1Details;
-            await updateSessionData(sessionId, "dataStore", dataStore);
-            dataStore = await getSessionData(sessionId, "dataStore");
-            if (req.session.userData) {
-              req.session.userData.e1 = e1Details;
-            } else {
-              req.session.userData = {};
-              req.session.userData.e1 = e1Details;
-            }
+
             req.session.baseUrl = process.env.BASE_PATH;
             req.session.DID = true;
             req.session.sealSession = sessionId;
@@ -560,51 +573,51 @@ app.prepare().then(() => {
     return res.sendStatus(200);
   });
 
-  server.post(["/contact/store", "/issuer/contact/store"], async (req, res) => {
-    console.log("server.js:: /self/store");
+  // server.post(["/contact/store", "/issuer/contact/store"], async (req, res) => {
+  //   console.log("server.js:: /self/store");
 
-    const sessionId = req.body.session;
-    const contactDetails = req.body.details;
-    contactDetails.loa = "low";
-    contactDetails.source = "contact";
-    //store response in cache
-    let dataStore = await getSessionData(sessionId, "dataStore");
-    if (!dataStore) {
-      dataStore = {};
-    }
-    dataStore["contact"] = contactDetails;
-    await updateSessionData(sessionId, "dataStore", dataStore);
-    dataStore = await getSessionData(sessionId, "dataStore");
-    console.log(dataStore);
-    return res.sendStatus(200);
-  });
+  //   const sessionId = req.body.session;
+  //   const contactDetails = req.body.details;
+  //   contactDetails.loa = "low";
+  //   contactDetails.source = "contact";
+  //   //store response in cache
+  //   let dataStore = await getSessionData(sessionId, "dataStore");
+  //   if (!dataStore) {
+  //     dataStore = {};
+  //   }
+  //   dataStore["contact"] = contactDetails;
+  //   await updateSessionData(sessionId, "dataStore", dataStore);
+  //   dataStore = await getSessionData(sessionId, "dataStore");
+  //   console.log(dataStore);
+  //   return res.sendStatus(200);
+  // });
 
-  server.post(
-    ["/mitro-mock/store", "/issuer/mitro-mock/store"],
-    async (req, res) => {
-      console.log("server.js:: /mitro-mock/store");
-      const sessionId = req.body.session;
-      const contactDetails = req.body.details;
-      contactDetails.loa = "low";
-      contactDetails.source = "mitro";
-      //store response in cache
-      let dataStore = await getSessionData(sessionId, "dataStore");
-      if (!dataStore) {
-        dataStore = {};
-      }
-      dataStore["mitro"] = contactDetails;
-      await updateSessionData(sessionId, "dataStore", dataStore);
-      dataStore = await getSessionData(sessionId, "dataStore");
-      console.log(dataStore);
-      return res.sendStatus(200);
-    }
-  );
+  // server.post(
+  //   ["/mitro-mock/store", "/issuer/mitro-mock/store"],
+  //   async (req, res) => {
+  //     console.log("server.js:: /mitro-mock/store");
+  //     const sessionId = req.body.session;
+  //     const contactDetails = req.body.details;
+  //     contactDetails.loa = "low";
+  //     contactDetails.source = "mitro";
+  //     //store response in cache
+  //     let dataStore = await getSessionData(sessionId, "dataStore");
+  //     if (!dataStore) {
+  //       dataStore = {};
+  //     }
+  //     dataStore["mitro"] = contactDetails;
+  //     await updateSessionData(sessionId, "dataStore", dataStore);
+  //     dataStore = await getSessionData(sessionId, "dataStore");
+  //     console.log(dataStore);
+  //     return res.sendStatus(200);
+  //   }
+  // );
 
-  server.get(["/vc/issue/amka"], async (req, res) => {
-    req.session.endpoint = endpoint;
-    req.session.baseUrl = process.env.BASE_PATH;
-    return app.render(req, res, "/vc/issue/amka", req.query);
-  });
+  // server.get(["/vc/issue/amka"], async (req, res) => {
+  //   req.session.endpoint = endpoint;
+  //   req.session.baseUrl = process.env.BASE_PATH;
+  //   return app.render(req, res, "/vc/issue/amka", req.query);
+  // });
 
   // server.get(["/vc/issue/contact"], async (req, res) => {
   //   req.session.endpoint = endpoint;
@@ -615,6 +628,7 @@ app.prepare().then(() => {
   server.get(["/vc/issue/e1"], async (req, res) => {
     req.session.endpoint = endpoint;
     req.session.baseUrl = process.env.BASE_PATH;
+    req.session.error = null
     return app.render(req, res, "/vc/issue/e1", req.query);
   });
 
@@ -630,11 +644,11 @@ app.prepare().then(() => {
     return app.render(req, res, "/vc/issue/mitro", req.query);
   });
 
-  server.get(["/vc/issue/mitromock"], async (req, res) => {
-    req.session.endpoint = endpoint;
-    req.session.baseUrl = process.env.BASE_PATH;
-    return app.render(req, res, "/vc/issue/mitromock", req.query);
-  });
+  // server.get(["/vc/issue/mitromock"], async (req, res) => {
+  //   req.session.endpoint = endpoint;
+  //   req.session.baseUrl = process.env.BASE_PATH;
+  //   return app.render(req, res, "/vc/issue/mitromock", req.query);
+  // });
 
   server.get(["/vc/issue/self"], async (req, res) => {
     req.session.endpoint = endpoint;
@@ -715,16 +729,16 @@ app.prepare().then(() => {
             console.log(e);
           }
           let result = JSON.parse(body).fields[1].value;
-          let expected = 
-          `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.ebill.name}\nΕπώνυμο: ${endorsement.ebill.surname}\nΠατρώνυμο: ${endorsement.ebill.fathersName}\nAFM: ${endorsement.ebill.afm}\nΟδός: ${endorsement.ebill.street}\nΑριθμός: ${endorsement.ebill.number}\nΔήμος: ${endorsement.ebill.municipality}\nΤ.Κ.: ${endorsement.ebill.po}\nΙδιοκτησιακό καθεστώς: ${endorsement.ebill.ownership}\nΠαροχή: ${endorsement.ebill.supplyType}\nΜετρητής ΔΕΔΔΗΕ: ${endorsement.ebill.meterNumber}\nκαι τα βρήκα ακριβή`
-            //clean up strings
-          expected= expected.replace(/\s/g, '').replace(/\n/g,'')
-          result = result.replace(/\s/g, '').replace(/\n/g,'')
+          let expected =
+            `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.ebill.name}\nΕπώνυμο: ${endorsement.ebill.surname}\nΠατρώνυμο: ${endorsement.ebill.fathersName}\nAFM: ${endorsement.ebill.afm}\nΟδός: ${endorsement.ebill.street}\nΑριθμός: ${endorsement.ebill.number}\nΔήμος: ${endorsement.ebill.municipality}\nΤ.Κ.: ${endorsement.ebill.po}\nΙδιοκτησιακό καθεστώς: ${endorsement.ebill.ownership}\nΠαροχή: ${endorsement.ebill.supplyType}\nΜετρητής ΔΕΔΔΗΕ: ${endorsement.ebill.meterNumber}\nκαι τα βρήκα ακριβή`
+          //clean up strings
+          expected = expected.replace(/\s/g, '').replace(/\n/g, '')
+          result = result.replace(/\s/g, '').replace(/\n/g, '')
           //
           if (result === expected) {
             console.log(`server.js:: endorsement is a success`);
-            endorsement.ebill.endorsement=verificationId
-            issueEndorsedEBill(req,res,JSON.parse(endorsement.did),endorsement.ebill)
+            endorsement.ebill.endorsement = verificationId
+            issueEndorsedEBill(req, res, JSON.parse(endorsement.did), endorsement.ebill)
             // res.sendStatus(200);
           } else {
             console.log(`expected ${expected}`);
@@ -791,17 +805,17 @@ app.prepare().then(() => {
             console.log(e);
           }
           let result = JSON.parse(body).fields[1].value;
-          let expected = 
-          `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.contact.name}\nΕπώνυμο: ${endorsement.contact.surname}\nΔιεύθυνση email: ${endorsement.contact.email}\nΑριθμός Σταθερού Τηλεφώνου: ${endorsement.contact.landline}\nΑριθμός Κινητού Τηλεφώνου: ${endorsement.contact.mobile}\nΑριθμός Τραπεζικού Λογαριασμού (IBAN): ${endorsement.contact.iban}\nκαι τα βρήκα ακριβή`  
-          
+          let expected =
+            `Επαλήθευσα τα στοιχεία\nΌνομα: ${endorsement.contact.name}\nΕπώνυμο: ${endorsement.contact.surname}\nΔιεύθυνση email: ${endorsement.contact.email}\nΑριθμός Σταθερού Τηλεφώνου: ${endorsement.contact.landline}\nΑριθμός Κινητού Τηλεφώνου: ${endorsement.contact.mobile}\nΑριθμός Τραπεζικού Λογαριασμού (IBAN): ${endorsement.contact.iban}\nκαι τα βρήκα ακριβή`
+
           //clean up strings
-          expected= expected.replace(/\s/g, '').replace(/\n/g,'')
-          result = result.replace(/\s/g, '').replace(/\n/g,'')
+          expected = expected.replace(/\s/g, '').replace(/\n/g, '')
+          result = result.replace(/\s/g, '').replace(/\n/g, '')
           //
           if (result === expected) {
             console.log(`server.js:: endorsement is a success`);
-            endorsement.contact.endorsement=verificationId
-            issueEndorsedContact(req,res,JSON.parse(endorsement.did),endorsement.contact)
+            endorsement.contact.endorsement = verificationId
+            issueEndorsedContact(req, res, JSON.parse(endorsement.did), endorsement.contact)
             // res.sendStatus(200);
           } else {
             console.log(`expected ${expected}`);

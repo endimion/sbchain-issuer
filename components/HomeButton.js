@@ -6,7 +6,7 @@ const HomeButton = props => {
     <div className="col" style={{ marginTop: "1.5rem" }}>
       <Link href={props.baseUrl ? `${props.baseUrl}` : "/"}>
         <Button variant="primary" className="float-right">
-          Home
+          Αρχική Σελίδα
         </Button>
       </Link>
     </div>

@@ -129,9 +129,9 @@ class IssueAmka extends React.Component {
   render() {
     let stepNumber = !this.props.DID ? 0 : this.hasRequiredAttributes ? 2 : 1;
     let stepperSteps = [
-      { title: "Pair your wallet" },
-      { title: 'Authenticate over "eIDAS-eID"' },
-      { title: "Request Issuance" },
+      { title: "Συνδέστε το κινητό σας" },
+      { title: 'Ταυτοποιηθείτε μέσω TaxisNet' },
+      { title: "Έκδοση Ηλεκτρονικής Ταυτότητας" },
     ];
 
 
@@ -159,10 +159,10 @@ class IssueAmka extends React.Component {
     }
 
     let amkaLoginButton = !this.hasRequiredAttributes ? (
-      <Button onClick={this.proceedWithTaxisAuth}>TAXIS login</Button>
+      <Button onClick={this.proceedWithTaxisAuth}>TAXIS</Button>
     ) : (
       <Button variant="primary" disabled>
-        TAXIS login
+        TAXIS
       </Button>
     );
 
@@ -179,16 +179,16 @@ class IssueAmka extends React.Component {
 
     let eidasCard = (
       <Card className="text-center" style={{ marginTop: "2rem" }}>
-        <Card.Header>Issue a Verifiable Credential containing attributes from attributes retrieved from TAXIS</Card.Header>
+          <Card.Header>Δημιουργείστε μια ηλεκτρονική ταυτότητα
+            με τις πληροφορίες σας από το TAXIS</Card.Header>
         <Card.Body>
           <Card.Title>
             {this.hasRequiredAttributes
-              ? "Credentials Issuance is ready!"
-              : "Please authenticate to the required data sources"}
+               ? "Η έκδοση της Ηλεκτρονικής σας Ταυτότητας είναι έτοιμη!"
+               : "Παρακαλώ ταυτοποιηθείτε στις απαιτούμενες υπηρεσίες"}
           </Card.Title>
           <Card.Text>
-            Once you have authenticated through the required data sources, click
-            the "Issue" button to generate and receive your VC .
+            Μολις ταυτοποιηθείτε από το Taxis, πατήστε το κουμπί "Έκδοση" για να δημιουργήσετε την ταυτοτητά σας.
           </Card.Text>
           <Container>
             <Row>
