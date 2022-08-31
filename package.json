@@ -34,7 +34,7 @@
     "keycloak-connect-multirealm": "^1.2.0",
     "memcached": "^2.2.2",
     "mobile-detect": "^1.4.4",
-    "moment-timezone": "^0.5.31",
+    "moment-timezone": "^0.5.35",
     "mongodb": "^3.5.9",
     "next": "^9.4.4",
     "ngrok": "^3.2.7",
